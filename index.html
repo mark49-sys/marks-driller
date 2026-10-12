@@ -5,18 +5,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mark Driller — Drill down. Hit the mark.</title>
   <meta name="description" content="Study materials, past questions and full CBT simulations for WAEC, NECO, JAMB/UTME and university exams — built for secondary and university students across West Africa.">
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#c2410c">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico?v=5">
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5">
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png?v=5">
+  <link rel="icon" type="image/png" sizes="48x48" href="/icons/favicon-48.png?v=5">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180.png?v=5">
+  <link rel="manifest" href="/manifest.json?v=5">
+  <meta name="theme-color" content="#0b46c8">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="MarkDriller">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Mark Driller">
+  <meta property="og:title" content="Mark Driller — Drill down. Hit the mark.">
+  <meta property="og:description" content="Study materials, past questions and full CBT simulations for WAEC, NECO, JAMB/UTME and university exams.">
+  <meta property="og:image" content="https://markdriller.ng/icons/og-image-1200x630.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Mark Driller CBT Platform logo">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Mark Driller — Drill down. Hit the mark.">
+  <meta name="twitter:description" content="Study materials, past questions and full CBT simulations for WAEC, NECO, JAMB/UTME and university exams.">
+  <meta name="twitter:image" content="https://markdriller.ng/icons/og-image-1200x630.png">
+  <meta name="twitter:image:alt" content="Mark Driller CBT Platform logo">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    @keyframes splashSweep { 0% { transform: translateX(-100%); } 50% { transform: translateX(30%); } 100% { transform: translateX(100%); } }
+    @keyframes splashGlow { 0% { box-shadow: 0 0 0 2.5px #fbbf24, 0 0 18px rgba(251,191,36,.45), 0 6px 20px rgba(11,70,200,.5); } 50% { box-shadow: 0 0 0 3.5px #f59e0b, 0 0 30px rgba(245,158,11,.7), 0 8px 26px rgba(11,70,200,.7); } 100% { box-shadow: 0 0 0 2.5px #fbbf24, 0 0 18px rgba(251,191,36,.45), 0 6px 20px rgba(11,70,200,.5); } }
+  </style>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <!-- Static brand splash: replaced automatically when React mounts. -->
+    <div role="status" aria-label="Loading Mark Driller" style="min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 36%, #0f2b6a 0%, #071338 55%, #03081e 100%);color:#f8fafc;padding:32px 16px;text-align:center;">
+      <div style="display:flex;flex-direction:column;align-items:center;max-width:440px;width:100%;">
+        <img src="/icons/logo-full-256.png?v=3" width="112" height="112" alt="Mark Driller CBT Platform" decoding="async" fetchpriority="high" style="display:block;border-radius:50%;background:#0b46c8;animation:splashGlow 3s ease-in-out infinite;">
+        <div style="font-family:'Inter',system-ui,sans-serif;font-size:32px;font-weight:900;letter-spacing:-0.5px;color:#f8fafc;margin-top:16px;line-height:1;">Mark<span style="background:linear-gradient(135deg,#fbbf24 0%,#f97316 60%,#ea580c 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;color:#f97316;">Driller</span></div>
+        <div style="display:inline-block;padding:2px 8px;background:rgba(30,58,138,.45);border:1px solid rgba(59,130,246,.55);border-radius:4px;color:#93c5fd;font-family:'Inter',system-ui,sans-serif;font-size:10px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;margin-top:6px;">CBT PLATFORM</div>
+        <div style="font-family:'Inter',system-ui,sans-serif;font-size:12.5px;font-weight:600;color:#fbbf24;letter-spacing:0.5px;margin-top:6px;">Drill down. Hit the mark.</div>
+        <div style="width:200px;height:4px;border-radius:3px;background:rgba(255,255,255,0.16);overflow:hidden;margin-top:18px;position:relative;">
+          <div style="height:100%;width:50%;background:linear-gradient(90deg,#f59e0b,#fbbf24,#f97316);border-radius:3px;animation:splashSweep 1.6s cubic-bezier(0.65,0,0.35,1) infinite;"></div>
+        </div>
+        <div style="font-family:'Inter',system-ui,sans-serif;font-size:13px;font-weight:500;color:#94a3b8;letter-spacing:0.3px;margin-top:8px;">Loading examination platform...</div>
+      </div>
+    </div>
+  </div>
   <script type="module" src="/src/main.tsx"></script>
   <script>
-    if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+    if ('serviceWorker' in navigator && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
       function syncServiceWorker() {
         navigator.serviceWorker.getRegistrations().then(function(regs) {
           for (var i = 0; i < regs.length; i++) {

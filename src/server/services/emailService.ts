@@ -46,6 +46,29 @@ export interface EmailDispatchResult {
   error?: string;
 }
 
+/**
+ * Absolute HTTPS URL of the brand emblem for email headers.
+ * Derived only from server configuration (CLIENT_URL), never from request data.
+ * Returns null for non-HTTPS or local hosts so emails fall back to the text wordmark.
+ */
+function getEmailLogoUrl(): string | null {
+  try {
+    const parsed = new URL(env.CLIENT_URL);
+    if (parsed.protocol !== 'https:') return null;
+    if (['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname)) return null;
+    return `${parsed.origin}/icons/logo-full-192.png?v=3`;
+  } catch {
+    return null;
+  }
+}
+
+function emailLogoImg(px: number, align: 'center' | 'left' = 'center'): string {
+  const url = getEmailLogoUrl();
+  if (!url) return '';
+  const margin = align === 'center' ? '0 auto 10px' : '0 0 8px';
+  return `<img src="${escapeHtml(url)}" width="${px}" height="${px}" alt="MarkDriller CBT Platform" style="display:block;margin:${margin};border:0;outline:none;text-decoration:none;border-radius:50%;">`;
+}
+
 export const VERIFIED_BREVO_SENDER = 'oliversmith2140@gmail.com';
 export const DEFAULT_SENDER_NAME = 'MarkDriller Support';
 
@@ -287,6 +310,7 @@ function wrapBrandedTemplate(title: string, contentHtml: string): string {
   <body>
     <div class="container">
       <div class="header">
+        ${emailLogoImg(96)}
         <div class="logo">Mark<span>Driller</span></div>
       </div>
       <div class="body">
@@ -479,6 +503,7 @@ export async function sendSupportComplaintNotificationEmail(params: {
       <table style="width: 100%; border-collapse: collapse;">
         <tr>
           <td>
+            ${emailLogoImg(72, 'left')}
             <div style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: #ffffff;">
               Mark<span style="color: #d4622b;">Driller</span> Support Desk
             </div>
@@ -634,6 +659,7 @@ export async function sendCustomerTicketConfirmationEmail(params: {
   <div style="max-width: 580px; margin: 30px auto; background: #ffffff; border: 1.5px solid #14181c; box-shadow: 4px 4px 0 #14181c;">
     <!-- Header -->
     <div style="padding: 24px; background: #14181c; color: #ffffff; text-align: center;">
+      ${emailLogoImg(96)}
       <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #ffffff;">
         Mark<span style="color: #d4622b;">Driller</span>
       </div>

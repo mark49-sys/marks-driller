@@ -209,17 +209,57 @@ app.get('/sw.js', (_req, res) => {
   return res.status(404).end();
 });
 
-// Production Static Serving
-if (env.NODE_ENV === 'production') {
+// Explicitly serve manifest with standard MIME type and revalidation headers for PWA auto-update
+app.get('/manifest.json', (_req, res) => {
   const distPath = fs.existsSync(path.resolve(__dirname, '../index.html'))
     ? path.resolve(__dirname, '../')
     : path.resolve(process.cwd(), 'dist');
+  const manifestDistPath = path.resolve(distPath, 'manifest.json');
+  const manifestPublicPath = path.resolve(process.cwd(), 'public/manifest.json');
+
+  const targetPath = fs.existsSync(manifestDistPath) ? manifestDistPath : fs.existsSync(manifestPublicPath) ? manifestPublicPath : null;
+  if (targetPath) {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Content-Type', 'application/manifest+json; charset=UTF-8');
+    return res.sendFile(targetPath);
+  }
+  return res.status(404).end();
+});
+
+// Explicitly serve favicon.ico with standard MIME type and revalidation headers
+app.get('/favicon.ico', (_req, res) => {
+  const distPath = fs.existsSync(path.resolve(__dirname, '../index.html'))
+    ? path.resolve(__dirname, '../')
+    : path.resolve(process.cwd(), 'dist');
+  const icoDistPath = path.resolve(distPath, 'favicon.ico');
+  const icoPublicPath = path.resolve(process.cwd(), 'public/favicon.ico');
+
+  const targetPath = fs.existsSync(icoDistPath) ? icoDistPath : fs.existsSync(icoPublicPath) ? icoPublicPath : null;
+  if (targetPath) {
+    res.setHeader('Cache-Control', 'public, max-age=86400, must-revalidate');
+    res.setHeader('Content-Type', 'image/x-icon');
+    return res.sendFile(targetPath);
+  }
+  return res.status(404).end();
+});
+
+// Production and Built Bundle Static Serving
+const distPath = fs.existsSync(path.resolve(__dirname, '../index.html'))
+  ? path.resolve(__dirname, '../')
+  : path.resolve(process.cwd(), 'dist');
+
+if (fs.existsSync(distPath) && fs.existsSync(path.resolve(distPath, 'index.html'))) {
 
   app.use(
     express.static(distPath, {
       setHeaders: (res, filePath) => {
         if (filePath.endsWith('.html')) {
           res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        } else if (filePath.includes(`${path.sep}icons${path.sep}`)) {
+          // Brand icons are un-hashed: allow revalidation so logo updates reach installed PWAs.
+          res.setHeader('Cache-Control', 'public, max-age=86400, must-revalidate');
         } else if (filePath.match(/\.(js|css|svg|png|jpg|webp|woff2?)$/)) {
           res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
         }

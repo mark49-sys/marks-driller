@@ -58,6 +58,12 @@ jobs:
 
       - name: Security Hardening, Navbar Separation & Concurrency Verification
         run: npm test
+        env:
+          NODE_ENV: test
+          MONGODB_URI: mongodb://localhost:27017/markdriller_test
+
+      - name: PWA Installed App Icon & Manifest Integrity Audit
+        run: npm run test:pwa-icon
 
       - name: Headless Paystack Payment & E2E Security Verification
         run: npm run test:paystack

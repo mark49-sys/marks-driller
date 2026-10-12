@@ -51,7 +51,7 @@ const EXAM_VISUALS: Record<string, { image: string; label: string; tone: string 
 const getMaterialVisual = (material: StudyMaterialItem) => {
   const examText = `${material.examId?.shortCode || ''} ${material.examId?.name || ''} ${material.title}`.toUpperCase();
   const match = Object.entries(EXAM_VISUALS).find(([key]) => examText.includes(key));
-  return match?.[1] || { image: '/favicon.svg', label: 'MarkDriller study document', tone: 'materials-visual-default' };
+  return match?.[1] || { image: '/icons/icon-512.png', label: 'MarkDriller study document', tone: 'materials-visual-default' };
 };
 
 export const StudyMaterialsView: React.FC = () => {

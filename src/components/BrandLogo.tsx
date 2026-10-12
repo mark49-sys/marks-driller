@@ -3,28 +3,39 @@ import React from 'react';
 export interface BrandLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   variant?: 'horizontal' | 'stacked' | 'icon-only';
+  showSubtitle?: boolean;
   showTagline?: boolean;
+  showWordmark?: boolean;
+  glow?: boolean;
   className?: string;
   style?: React.CSSProperties;
   theme?: 'light' | 'dark' | 'auto';
 }
 
+// Diameter of the badge, typography sizing, and spacing
 const sizeConfig = {
-  sm: { icon: 20, font: '16px', suffix: '16px', gap: '6px' },
-  md: { icon: 28, font: '20px', suffix: '20px', gap: '8px' },
-  lg: { icon: 44, font: '28px', suffix: '28px', gap: '12px' },
-  xl: { icon: 60, font: '38px', suffix: '38px', gap: '16px' },
+  sm: { badge: 36, font: '16px', subtitle: '9px', tagline: '10.5px', gap: '8px', ring: 2 },
+  md: { badge: 46, font: '20px', subtitle: '10px', tagline: '11.5px', gap: '10px', ring: 2.5 },
+  lg: { badge: 88, font: '28px', subtitle: '11px', tagline: '13px', gap: '14px', ring: 3 },
+  xl: { badge: 130, font: '36px', subtitle: '12px', tagline: '15px', gap: '16px', ring: 3.5 },
 };
+
+// High-resolution responsive image sources for uncropped official artwork
+const srcSetFor = (ext: 'webp' | 'png') =>
+  [96, 192, 256, 512].map((w) => `/icons/logo-full-${w}.${ext} ${w}w`).join(', ');
 
 /**
  * MarkDriller Canonical Brand Logo
- * Unified source of truth for the target/crosshair insignia and brand typography.
- * Supports theme="dark" for headers, dark mode surfaces, and footers.
+ * Displays the full uncropped brand artwork with radiant gold trim and
+ * high-definition typography for an ultra-premium UX/UI.
  */
 export const BrandLogo: React.FC<BrandLogoProps> = ({
   size = 'md',
   variant = 'horizontal',
+  showSubtitle = false,
   showTagline = false,
+  showWordmark = true,
+  glow = false,
   className = '',
   style = {},
   theme = 'auto',
@@ -40,87 +51,80 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
       ? (style?.color || '#121826')
       : (style?.color || 'var(--brand-mark, var(--ink, #121826))');
 
-  const drillColor =
-    theme === 'dark'
-      ? '#fb923c'
-      : theme === 'light'
-      ? '#a8562f'
-      : 'var(--brand-drill, var(--rust, #a8562f))';
-
-  const innerRingColor =
-    theme === 'dark'
-      ? '#fb923c'
-      : theme === 'light'
-      ? '#a8562f'
-      : 'var(--brand-drill, var(--rust, #a8562f))';
-
-  const iconSvg = (
-    <svg
-      className="mark-icon"
-      width={config.icon}
-      height={config.icon}
-      viewBox="0 0 28 28"
-      fill="none"
-      role="img"
-      aria-label="MarkDriller Target Insignia"
-      style={{ flexShrink: 0 }}
-    >
-      <circle cx="14" cy="14" r="12" stroke={baseColor} strokeWidth="2" />
-      <circle cx="14" cy="14" r="6.5" stroke={innerRingColor} strokeWidth="2" />
-      <circle cx="14" cy="14" r="1.8" fill={baseColor} />
-      <line x1="14" y1="0" x2="14" y2="5" stroke={baseColor} strokeWidth="2" />
-      <line x1="14" y1="23" x2="14" y2="28" stroke={baseColor} strokeWidth="2" />
-      <line x1="0" y1="14" x2="5" y2="14" stroke={baseColor} strokeWidth="2" />
-      <line x1="23" y1="14" x2="28" y2="14" stroke={baseColor} strokeWidth="2" />
-    </svg>
+  const badge = (
+    <picture className="brand-logo-badge" style={{ display: 'inline-flex', flexShrink: 0 }}>
+      <source type="image/webp" srcSet={srcSetFor('webp')} sizes={`${config.badge}px`} />
+      <img
+        className={`mark-icon brand-badge-pro ${glow ? 'brand-badge-glow' : ''}`}
+        src={config.badge <= 48 ? '/icons/logo-full-192.png' : '/icons/logo-full-512.png'}
+        srcSet={srcSetFor('png')}
+        sizes={`${config.badge}px`}
+        width={config.badge}
+        height={config.badge}
+        alt={isIconOnly || !showWordmark ? 'MarkDriller CBT Platform' : ''}
+        decoding="async"
+        draggable={false}
+        style={{
+          width: config.badge,
+          height: config.badge,
+          boxShadow: glow
+            ? undefined
+            : `0 0 0 ${config.ring}px #fbbf24, 0 4px 14px rgba(11, 70, 200, 0.45)`,
+        }}
+      />
+    </picture>
   );
 
-  if (isIconOnly) {
+  if (isIconOnly || !showWordmark) {
     return (
       <div
-        className={`brand-logo-container ${className}`}
-        style={{ display: 'inline-flex', alignItems: 'center', color: baseColor, ...style }}
+        className={`brand-logo-pro ${className}`}
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', ...style }}
       >
-        {iconSvg}
+        {badge}
       </div>
     );
   }
 
   return (
     <div
-      className={`brand-logo-container ${className}`}
+      className={`brand-logo-pro ${isStacked ? 'brand-logo-pro--stacked' : 'brand-logo-pro--horizontal'} ${className}`}
       style={{
-        display: 'inline-flex',
-        flexDirection: isStacked ? 'column' : 'row',
-        alignItems: 'center',
         gap: config.gap,
-        fontFamily: "var(--font-sans)",
-        fontWeight: 700,
-        textDecoration: 'none',
         color: baseColor,
         ...style,
       }}
     >
-      {iconSvg}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: isStacked ? 'center' : 'flex-start' }}>
-        <div style={{ fontSize: config.font, letterSpacing: '-0.5px', lineHeight: 1 }}>
-          <span style={{ color: baseColor }}>Mark</span>
-          <span className="drill-suffix" style={{ color: drillColor }}>Driller</span>
+      {badge}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: isStacked ? 'center' : 'flex-start',
+        }}
+      >
+        <div className="brand-title-pro" style={{ fontSize: config.font }}>
+          <span className="mark-part" style={{ color: baseColor }}>Mark</span>
+          <span className="driller-part">Driller</span>
         </div>
+
+        {showSubtitle && (
+          <span
+            className="brand-subtitle-badge"
+            style={{
+              fontSize: config.subtitle,
+            }}
+          >
+            CBT PLATFORM
+          </span>
+        )}
+
         {showTagline && (
           <span
+            className="brand-tagline-pro"
             style={{
-              fontSize: '11px',
-              fontFamily: "var(--font-sans)",
-              color:
-                theme === 'dark'
-                  ? 'rgba(255, 255, 255, 0.75)'
-                  : theme === 'light'
-                  ? '#4b5563'
-                  : 'var(--ink-soft, var(--color-text-muted, #666))',
-              fontWeight: 500,
-              letterSpacing: '0.5px',
-              marginTop: '4px',
+              fontSize: config.tagline,
+              color: theme === 'dark' ? '#fbbf24' : 'var(--brand-drill, #c2410c)',
             }}
           >
             Drill down. Hit the mark.
@@ -130,5 +134,3 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
     </div>
   );
 };
-
-

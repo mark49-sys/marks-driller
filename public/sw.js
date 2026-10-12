@@ -1,31 +1,51 @@
 // MarkDriller Production Service Worker (PWA Shell Caching & Offline Resilience)
 // Explicitly ignores API endpoints, authenticated calls, payment webhooks, and navigation requests.
 
-const CACHE_NAME = 'markdriller-shell-v4';
+const CACHE_NAME = 'markdriller-shell-v10';
 
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/favicon.svg',
+  '/favicon.ico',
+  '/icons/favicon-32.png',
+  '/icons/favicon-48.png',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/icons/icon-maskable-192.png',
+  '/icons/icon-maskable-512.png',
+  '/icons/logo-full-192.png',
+  '/icons/logo-full-256.png',
+  '/icons/logo-full-512.png',
   '/manifest.json',
 ];
 
-// Install: Immediately activate new service worker without waiting
+// Install: Immediately activate new service worker without waiting for old tabs to close
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate: Purge ALL obsolete version caches (v1, v2, v3, etc.) and take immediate control of clients
+// Activate: Purge ALL obsolete version caches and take immediate control of all open client tabs
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
-          console.log('[SW] Purging obsolete cache:', key);
-          return caches.delete(key);
+          if (key !== CACHE_NAME) {
+            console.log('[SW] Purging obsolete cache:', key);
+            return caches.delete(key);
+          }
         })
       );
-    }).then(() => self.clients.claim())
+    }).then(() => {
+      return self.clients.claim();
+    }).then(() => {
+      // Notify active clients that service worker has updated
+      return self.clients.matchAll({ type: 'window' }).then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'SW_CACHE_PURGED', version: CACHE_NAME });
+        });
+      });
+    })
   );
 });
 
