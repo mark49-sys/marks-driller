@@ -35,6 +35,7 @@ import { NotificationCenter } from './components/NotificationCenter.js';
 import { ConfirmationDialog } from './components/ConfirmationDialog.js';
 import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { CbtDirectRouter } from './components/CbtDirectRouter.js';
+import { PwaProvider } from './providers/PwaProvider.js';
 import { useAuthStore } from './store/useAuthStore.js';
 import { useAppStore } from './store/useAppStore.js';
 
@@ -54,11 +55,12 @@ export const App: React.FC = () => {
       <NotificationCenter />
       <ConfirmationDialog />
       <BrowserRouter>
-        <AuthModal />
-        <EmailVerificationModal />
-        <ForgotPasswordModal />
-        <FloatingWhatsApp />
-        <Routes>
+        <PwaProvider>
+          <AuthModal />
+          <EmailVerificationModal />
+          <ForgotPasswordModal />
+          <FloatingWhatsApp />
+          <Routes>
           {/* ======================================================== */}
           {/* 1. PUBLIC PLATFORM WEBSITE — Owned by PublicLayout        */}
           {/*    Exclusively renders Public Navbar & Footer            */}
@@ -304,6 +306,7 @@ export const App: React.FC = () => {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </PwaProvider>
       </BrowserRouter>
     </ThemeProvider>
   );

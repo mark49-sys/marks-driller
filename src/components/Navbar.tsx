@@ -5,6 +5,7 @@ import { useAppStore } from '../store/useAppStore.js';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { BrandLogo } from './BrandLogo.js';
 import { ThemeToggle } from './ThemeToggle.js';
+import { PwaInstallButton } from './PwaInstallButton.js';
 
 export const Navbar: React.FC = () => {
   const { mobileMenuOpen, setMobileMenuOpen, openAuthModal } = useAppStore();
@@ -101,6 +102,8 @@ export const Navbar: React.FC = () => {
                 </button>
               </div>
             )}
+            {/* PWA Desktop Install Action */}
+            <PwaInstallButton variant="header" style={{ marginRight: '4px' }} />
           </div>
 
           {/* Far Right: Existing Theme Toggle */}
@@ -157,6 +160,11 @@ export const Navbar: React.FC = () => {
               Appearance
             </span>
             <ThemeToggle showLabel />
+          </div>
+
+          {/* PWA Mobile App Install Action */}
+          <div style={{ marginBottom: '16px' }}>
+            <PwaInstallButton variant="drawer" onClickExtra={handleNavClick} />
           </div>
 
           {!isAuthenticated && (

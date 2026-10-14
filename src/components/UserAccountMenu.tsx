@@ -164,11 +164,13 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({ onItemClick })
       {/* Dropdown Menu Container */}
       {isOpen && (
         <div
+          className="portal-account-dropdown"
           style={{
             position: 'absolute',
             right: 0,
             top: 'calc(100% + 8px)',
             width: '260px',
+            maxWidth: 'calc(100vw - 24px)',
             backgroundColor: 'var(--white)',
             border: '1.5px solid var(--paper-line)',
             borderRadius: '8px',

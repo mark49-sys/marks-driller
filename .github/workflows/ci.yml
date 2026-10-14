@@ -65,6 +65,9 @@ jobs:
       - name: PWA Installed App Icon & Manifest Integrity Audit
         run: npm run test:pwa-icon
 
+      - name: PWA Responsive Installation & Notification Geometry Verification
+        run: npm run test:pwa-notif
+
       - name: Headless Paystack Payment & E2E Security Verification
         run: npm run test:paystack
         env:

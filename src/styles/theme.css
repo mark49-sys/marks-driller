@@ -5128,3 +5128,145 @@ select:not(.MuiSelect-nativeInput) {
     padding: 0 !important;
   }
 }
+
+/* ========================================================================= */
+/* RESPONSIVE NOTIFICATION POPOVER & TOAST OVERLAY ARCHITECTURE              */
+/* ========================================================================= */
+
+.portal-notif-backdrop {
+  display: none;
+}
+
+.portal-notif-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 360px;
+  max-width: min(360px, calc(100vw - 24px));
+  background-color: var(--white, #ffffff);
+  border: 1.5px solid var(--paper-line);
+  border-radius: 12px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.22);
+  z-index: 1050;
+  overflow: hidden;
+  animation: fadeIn 0.15s ease;
+}
+
+.portal-account-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 260px;
+  max-width: calc(100vw - 24px);
+  background-color: var(--white, #ffffff);
+  border: 1.5px solid var(--paper-line);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+  z-index: 1050;
+  overflow: hidden;
+  animation: fadeIn 0.15s ease;
+}
+
+/* Mobile & Tablet Phone Viewport Rules (<= 640px) */
+@media (max-width: 640px) {
+  .portal-notif-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 12, 44, 0.45);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 1098;
+  }
+
+  .portal-notif-popover {
+    position: fixed !important;
+    top: calc(env(safe-area-inset-top, 0px) + 68px) !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: calc(100dvh - 84px) !important;
+    margin: 0 auto !important;
+    z-index: 1099 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.38) !important;
+  }
+
+  .portal-notif-popover .portal-notif-list {
+    max-height: calc(100dvh - 160px) !important;
+  }
+
+  .portal-account-dropdown {
+    right: -6px !important;
+    max-width: calc(100vw - 20px) !important;
+  }
+}
+
+/* Ultra-Compact Mobile Screens (<= 360px) */
+@media (max-width: 360px) {
+  .portal-notif-popover {
+    left: 8px !important;
+    right: 8px !important;
+    max-width: calc(100vw - 16px) !important;
+    border-radius: 10px !important;
+  }
+}
+
+/* ========================================================================= */
+/* PWA INSTALLATION RESPONSIVE DESIGN SYSTEM                                 */
+/* ========================================================================= */
+
+.pwa-install-header-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background-color: var(--forest-soft, rgba(15, 118, 110, 0.1));
+  border: 1px solid var(--forest, #0f766e);
+  color: var(--forest, #0f766e);
+  font-size: 12.5px;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.pwa-install-header-btn:hover {
+  background-color: var(--forest, #0f766e);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25);
+}
+
+.pwa-install-banner {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+@media (max-width: 640px) {
+  .pwa-install-header-btn {
+    display: none !important;
+  }
+
+  .pwa-install-banner {
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px) !important;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+

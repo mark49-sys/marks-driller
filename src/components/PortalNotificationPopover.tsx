@@ -237,36 +237,44 @@ export const PortalNotificationPopover: React.FC = () => {
         )}
       </button>
 
+      {/* Mobile Backdrop for outside tap dismissal */}
+      {isOpen && (
+        <div
+          className="portal-notif-backdrop"
+          onClick={() => setIsOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Popover Card */}
       {isOpen && (
         <div
-          style={{
-            position: 'absolute',
-            right: 0,
-            top: 'calc(100% + 8px)',
-            width: '340px',
-            backgroundColor: 'var(--white)',
-            border: '1.5px solid var(--paper-line)',
-            borderRadius: '10px',
-            boxShadow: '0 16px 36px rgba(0, 0, 0, 0.2)',
-            zIndex: 1150,
-            overflow: 'hidden',
-            animation: 'fadeIn 0.15s ease',
-          }}
+          role="region"
+          aria-label="Notification Center"
+          className="portal-notif-popover"
         >
           {/* Header */}
           <div
             style={{
-              padding: '14px 18px',
+              padding: '12px 16px',
               borderBottom: '1px solid var(--paper-line)',
               backgroundColor: 'var(--paper)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
+              gap: '8px',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+              <span
+                style={{
+                  fontWeight: 800,
+                  fontSize: '14px',
+                  color: 'var(--ink)',
+                  fontFamily: 'var(--font-sans)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 Notification Center
               </span>
               {unreadCount > 0 && (
@@ -278,6 +286,7 @@ export const PortalNotificationPopover: React.FC = () => {
                     fontWeight: 700,
                     padding: '2px 6px',
                     borderRadius: '4px',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {unreadCount} new
@@ -285,27 +294,58 @@ export const PortalNotificationPopover: React.FC = () => {
               )}
             </div>
 
-            {unreadCount > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleMarkAllRead}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--forest, #225a38)',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    padding: '4px 6px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Mark all read
+                </button>
+              )}
               <button
                 type="button"
-                onClick={handleMarkAllRead}
+                onClick={() => setIsOpen(false)}
+                aria-label="Close notification center"
+                className="portal-notif-close-btn"
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'var(--forest, #225a38)',
-                  fontSize: '11.5px',
-                  fontWeight: 600,
+                  color: 'var(--ink-soft)',
+                  fontSize: '16px',
                   cursor: 'pointer',
-                  padding: 0,
+                  padding: '4px 6px',
+                  lineHeight: 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '4px',
                 }}
               >
-                Mark all read
+                ✕
               </button>
-            )}
+            </div>
           </div>
 
           {/* Notifications List */}
-          <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
+          <div
+            className="portal-notif-list"
+            style={{
+              maxHeight: '380px',
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
             {notifications.length > 0 ? (
               notifications.map((n) => {
                 const isRead = !!n.isRead;
@@ -314,31 +354,59 @@ export const PortalNotificationPopover: React.FC = () => {
                     key={n.id}
                     onClick={() => handleItemClick(n)}
                     style={{
-                      padding: '14px 18px',
+                      padding: '14px 16px',
                       borderBottom: '1px solid var(--paper-line)',
                       backgroundColor: isRead ? 'transparent' : 'rgba(168, 86, 47, 0.05)',
                       transition: 'background-color 0.15s ease',
                       cursor: isRead ? 'default' : 'pointer',
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        marginBottom: '4px',
+                        gap: '8px',
+                      }}
+                    >
                       <span
                         style={{
                           fontSize: '13px',
                           fontWeight: isRead ? 600 : 700,
                           color: n.isUrgent ? '#dc2626' : 'var(--ink)',
                           fontFamily: 'var(--font-sans)',
-                          lineHeight: 1.3,
+                          lineHeight: 1.35,
+                          wordBreak: 'break-word',
+                          overflowWrap: 'anywhere',
                         }}
                       >
                         {n.title}
                       </span>
-                      <span style={{ fontSize: '10.5px', color: 'var(--ink-soft)', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', marginLeft: '6px' }}>
+                      <span
+                        style={{
+                          fontSize: '10.5px',
+                          color: 'var(--ink-soft)',
+                          fontFamily: 'var(--font-sans)',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                          paddingTop: '1px',
+                        }}
+                      >
                         {n.time}
                       </span>
                     </div>
 
-                    <p style={{ fontSize: '12.5px', color: 'var(--ink-soft)', margin: '0 0 8px 0', lineHeight: 1.45 }}>
+                    <p
+                      style={{
+                        fontSize: '12.5px',
+                        color: 'var(--ink-soft)',
+                        margin: '0 0 8px 0',
+                        lineHeight: 1.45,
+                        wordBreak: 'break-word',
+                        overflowWrap: 'anywhere',
+                      }}
+                    >
                       {n.message}
                     </p>
 
@@ -354,6 +422,8 @@ export const PortalNotificationPopover: React.FC = () => {
                           fontWeight: 700,
                           color: 'var(--forest, #225a38)',
                           textDecoration: 'none',
+                          display: 'inline-block',
+                          padding: '2px 0',
                         }}
                       >
                         {n.actionText}
