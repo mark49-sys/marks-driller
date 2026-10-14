@@ -56,6 +56,7 @@ import {
 } from '../api/materials.js';
 import { useNotificationStore } from '../store/useNotificationStore.js';
 import { BrandLoader } from './BrandLoader.js';
+import { AdminPricingSettings } from './AdminPricingSettings.js';
 import { SyllabusSubjectCard } from './SyllabusSubjectCard.js';
 import { SafeImage } from './SafeImage.js';
 import {
@@ -817,6 +818,28 @@ export const AdminPortal: React.FC = () => {
           });
           showNotice('success', res.message || 'Payment approved and subscription activated!');
         } catch (err: any) {
+          if (err?.code === 'AMOUNT_SHORTFALL') {
+            confirmAction({
+              title: 'Amount Below Plan Price',
+              message: err.message,
+              confirmLabel: 'Approve Anyway',
+              cancelLabel: 'Cancel',
+              isDestructive: true,
+              onConfirm: async () => {
+                try {
+                  const res = await approveManualPaymentMutation.mutateAsync({
+                    paymentId: payment._id,
+                    adminReviewNotes: `Approved below plan price by admin ${user?.fullName || ''}`,
+                    acknowledgeShortfall: true,
+                  });
+                  showNotice('success', res.message || 'Payment approved and subscription activated!');
+                } catch (retryErr: any) {
+                  showNotice('error', retryErr.message || 'Failed to approve payment.');
+                }
+              },
+            });
+            return;
+          }
           showNotice('error', err.message || 'Failed to approve payment.');
         }
       },
@@ -2009,6 +2032,9 @@ export const AdminPortal: React.FC = () => {
         {/* TAB 6: MANUAL PAYMENTS & PROOFS */}
         {activeTab === 'PAYMENTS' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Pricing and Money Settings (database-backed, audited) */}
+            <AdminPricingSettings />
+
             {/* Dynamic Receiving Bank Account Configuration Card */}
             <div className="mk-card" style={{ background: 'var(--white)', border: '1.5px solid var(--paper-line)', borderRadius: '12px', padding: '28px', boxShadow: 'var(--card-shadow)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>

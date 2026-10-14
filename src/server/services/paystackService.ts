@@ -4,6 +4,7 @@ import { env } from '../config/env.js';
 export interface PaystackInitializeOptions {
   email: string;
   amountKobo: number;
+  currency?: string;
   reference: string;
   plan?: string;
   callbackUrl?: string;
@@ -53,7 +54,7 @@ export class PaystackService {
   public static async initializeTransaction(
     options: PaystackInitializeOptions
   ): Promise<PaystackInitializeResult> {
-    const { email, amountKobo, reference, plan, callbackUrl, metadata } = options;
+    const { email, amountKobo, currency, reference, plan, callbackUrl, metadata } = options;
 
     const clientBaseUrl = env.CLIENT_URL || (env.NODE_ENV === 'production' ? 'https://markdriller.ng' : 'http://localhost:3009');
 
@@ -71,6 +72,7 @@ export class PaystackService {
     const payload = {
       email,
       amount: amountKobo,
+      currency: currency || 'NGN',
       reference,
       callback_url: callbackUrl || `${clientBaseUrl}/pricing`,
       metadata: {
@@ -107,18 +109,21 @@ export class PaystackService {
   /**
    * Verify a transaction with Paystack via GET https://api.paystack.co/transaction/verify/:reference
    */
-  public static async verifyTransaction(reference: string): Promise<PaystackVerifyResult> {
+  public static async verifyTransaction(
+    reference: string,
+    expected?: { amountKobo: number; currency: string }
+  ): Promise<PaystackVerifyResult> {
     if (this.isMockKey(env.PAYSTACK_SECRET_KEY)) {
       if (env.NODE_ENV === 'production') {
         throw new Error('FATAL SECURITY ERROR: Mock Paystack keys and transaction simulation are forbidden in production.');
       }
-      // Offline / Test environment simulated verification
+      // Offline / Test environment simulated verification: echoes the locked expectation
       return {
         success: true,
         status: 'success',
         reference,
-        amountKobo: 0, // Router reconciles with trusted plan price
-        currency: 'NGN',
+        amountKobo: expected?.amountKobo ?? 0,
+        currency: expected?.currency ?? 'NGN',
         channel: 'card_simulation',
         paidAt: new Date(),
         gatewayResponse: 'Successful mock transaction',

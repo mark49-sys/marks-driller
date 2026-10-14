@@ -26,6 +26,7 @@ import contentRouter from './routes/content.js';
 import supportRouter from './routes/support.js';
 import notificationsRouter from './routes/notifications.js';
 import termsRouter from './routes/terms.js';
+import { seedApprovedPlanPricesIfMissing } from './services/pricingService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -151,6 +152,15 @@ const dbPromise = connectDatabase()
       console.log('✅ Production curriculum, past questions, and examination boards are verified & ready.');
     } catch (err) {
       console.error('❌ Error during curriculum seed verification:', err);
+    }
+
+    try {
+      const created = await seedApprovedPlanPricesIfMissing();
+      if (created.length > 0) {
+        console.log(`💳 Initialized missing plan price records: ${created.join(', ')}`);
+      }
+    } catch (err) {
+      console.error('❌ Could not verify plan price records (payments stay disabled until fixed):', err);
     }
   })
   .catch((err) => {

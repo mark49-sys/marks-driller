@@ -405,10 +405,10 @@ export function useAdminManualPaymentProofsQuery(params?: { status?: string; pag
 export function useAdminApproveManualPaymentMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ paymentId, adminReviewNotes }: { paymentId: string; adminReviewNotes?: string }) =>
+    mutationFn: ({ paymentId, adminReviewNotes, acknowledgeShortfall }: { paymentId: string; adminReviewNotes?: string; acknowledgeShortfall?: boolean }) =>
       apiClient<any>(`/api/admin/payments/${paymentId}/approve`, {
         method: 'POST',
-        body: JSON.stringify({ adminReviewNotes }),
+        body: JSON.stringify({ adminReviewNotes, acknowledgeShortfall }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'payments'] });
@@ -458,6 +458,84 @@ export function useAdminUpdateBankDetailsMutation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'bank-details'] });
       queryClient.invalidateQueries({ queryKey: ['subscription', 'bank-details'] });
+    },
+  });
+}
+
+// ----------------------------------------------------
+// Pricing & Money Settings Hooks
+// ----------------------------------------------------
+export interface AdminPlanPrice {
+  planId: 'PRO_MONTHLY' | 'PRO_BIMONTHLY' | 'PRO_QUARTERLY' | 'PRO_ANNUAL';
+  name: string;
+  billingPeriod: string;
+  amountKobo: number | null;
+  /** Decimal string in naira, e.g. "3500" or "3500.50". */
+  amountNGN: string | null;
+  currency: string;
+  enabled: boolean;
+  /** 0 means the plan has no saved price yet. */
+  version: number;
+  updatedAt: string | null;
+  updatedBy: { id: string; fullName: string; email: string } | null;
+}
+
+export interface PriceAuditEntry {
+  id: string;
+  planId: string;
+  changeType: 'INITIAL_SEED' | 'PRICE' | 'ENABLED' | 'PRICE_AND_ENABLED';
+  previousAmountKobo: number | null;
+  newAmountKobo: number;
+  previousEnabled: boolean | null;
+  newEnabled: boolean;
+  currency: string;
+  resultingVersion: number;
+  adminEmail: string | null;
+  requestId: string;
+  createdAt: string;
+}
+
+export function useAdminPricingQuery() {
+  return useQuery<{ plans: AdminPlanPrice[] }>({
+    queryKey: ['admin', 'pricing'],
+    queryFn: () => apiClient<{ plans: AdminPlanPrice[] }>('/api/admin/pricing'),
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+}
+
+export function useAdminPriceAuditQuery(limit = 20) {
+  return useQuery<{ entries: PriceAuditEntry[] }>({
+    queryKey: ['admin', 'pricing-audit', limit],
+    queryFn: () => apiClient<{ entries: PriceAuditEntry[] }>(`/api/admin/pricing/audit?limit=${limit}`),
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+}
+
+export function useAdminUpdatePlanPriceMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      planId,
+      amountNGN,
+      enabled,
+      expectedVersion,
+    }: {
+      planId: AdminPlanPrice['planId'];
+      amountNGN: string;
+      enabled?: boolean;
+      expectedVersion: number;
+    }) =>
+      apiClient<{ changed: boolean; requestId: string; price: AdminPlanPrice }>(`/api/admin/pricing/${planId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ amountNGN, enabled, expectedVersion }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'pricing'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'pricing-audit'] });
+      // Student-facing and landing prices must refetch immediately, not after the old cache expires.
+      queryClient.invalidateQueries({ queryKey: ['subscription', 'plans'] });
     },
   });
 }

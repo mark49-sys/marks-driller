@@ -21,4 +21,6 @@ export * from './SupportTicket.js';
 export * from './FreeTrialUsage.js';
 export * from './Notification.js';
 export * from './TermsAcceptance.js';
+export * from './PlanPrice.js';
+export * from './PriceChangeAudit.js';
 

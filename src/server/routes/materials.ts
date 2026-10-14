@@ -11,6 +11,7 @@ import { authenticateToken, requireAdmin, requireVerified, AuthenticatedRequest 
 import { materialUpload, validatePdfFileSignature, STORAGE_DIR_ABSOLUTE } from '../middleware/upload.js';
 import { materialDownloadLimiter, materialUploadLimiter } from '../middleware/rateLimiter.js';
 import { CloudinaryService } from '../services/cloudinaryService.js';
+import { PAID_PLAN_IDS } from '../models/PlanPrice.js';
 
 const router = Router();
 
@@ -336,7 +337,7 @@ router.get(
         const activeSub = await Subscription.findOne({
           userId: user._id,
           status: 'ACTIVE',
-          plan: { $in: ['PRO_MONTHLY', 'PRO_ANNUAL'] },
+          plan: { $in: PAID_PLAN_IDS as unknown as string[] },
           $or: [{ endDate: { $gt: new Date() } }, { endDate: null }],
         });
 

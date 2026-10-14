@@ -2,11 +2,15 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { useSubscriptionPlansQuery, formatKoboAsNaira } from '../api/subscriptions.js';
 
 export const SubscriptionTiersPreview: React.FC = () => {
   const navigate = useNavigate();
   const { openAuthModal } = useAppStore();
   const { isAuthenticated } = useAuthStore();
+  const { data: livePlans } = useSubscriptionPlansQuery();
+  const monthlyPlan = livePlans?.find((p) => p.id === 'PRO_MONTHLY');
+  const bimonthlyPlan = livePlans?.find((p) => p.id === 'PRO_BIMONTHLY');
 
   const handleProAction = () => {
     if (!isAuthenticated) {
@@ -171,10 +175,10 @@ export const SubscriptionTiersPreview: React.FC = () => {
             </h3>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
               <span style={{ fontSize: '36px', fontWeight: 800, fontFamily: "var(--font-sans)", color: 'var(--rust)' }}>
-                ₦3,500
+                {formatKoboAsNaira(monthlyPlan?.priceKobo)}
               </span>
               <span style={{ fontSize: '13px', color: 'var(--ink-soft)', fontFamily: "var(--font-sans)" }}>
-                / month (From ₦6,500 for 2 mos)
+                / month{bimonthlyPlan?.priceKobo != null ? ` (From ${formatKoboAsNaira(bimonthlyPlan.priceKobo)} for 2 mos)` : ''}
               </span>
             </div>
 

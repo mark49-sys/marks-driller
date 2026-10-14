@@ -21,6 +21,8 @@ import {
   Subscription,
   Payment,
   QuestionSyncLog,
+  PlanPrice,
+  PriceChangeAudit,
 } from '../src/server/models/index.js';
 
 const models = [
@@ -37,6 +39,8 @@ const models = [
   { name: 'Subscription', model: Subscription },
   { name: 'Payment', model: Payment },
   { name: 'QuestionSyncLog', model: QuestionSyncLog },
+  { name: 'PlanPrice', model: PlanPrice },
+  { name: 'PriceChangeAudit', model: PriceChangeAudit },
 ];
 
 async function ensureIndexes() {

@@ -43,7 +43,8 @@
     "test:randomization": "tsx scripts/verify-option-randomization-and-mobile-compatibility.ts",
     "test:otp": "tsx scripts/verify-otp-email-delivery.ts",
     "test:landing": "tsx scripts/verify-landing-redesign.ts",
-    "test:pwa-icon": "tsx scripts/verify-pwa-icon-root-cause.ts"
+    "test:pwa-icon": "tsx scripts/verify-pwa-icon-root-cause.ts",
+    "test:pricing": "tsx scripts/verify-admin-pricing-and-payments.ts"
   },
   "keywords": [
     "mark-driller",

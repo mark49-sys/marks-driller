@@ -11,6 +11,8 @@ import {
   useSubmitManualProofMutation,
   useUploadReceiptMutation,
   PlanTier,
+  formatKoboAsNaira,
+  koboToNairaInput,
 } from '../api/subscriptions.js';
 import { useNotificationStore } from '../store/useNotificationStore.js';
 
@@ -18,7 +20,7 @@ export const SubscriptionPlans: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
   const { openAuthModal } = useAppStore();
   const { notifySuccess, notifyError, notifyInfo } = useNotificationStore();
-  const { data: plans, isLoading: plansLoading } = useSubscriptionPlansQuery();
+  const { data: plans, isLoading: plansLoading, refetch: refetchPlans } = useSubscriptionPlansQuery();
   const { data: currentSub, refetch: refetchSub } = useMySubscriptionQuery();
   const { data: bankDetails } = useBankDetailsQuery();
 
@@ -35,7 +37,7 @@ export const SubscriptionPlans: React.FC = () => {
   const [manualPlan, setManualPlan] = useState<'PRO_MONTHLY' | 'PRO_BIMONTHLY' | 'PRO_QUARTERLY' | 'PRO_ANNUAL'>('PRO_MONTHLY');
   const [depositorName, setDepositorName] = useState('');
   const [bankName, setBankName] = useState('');
-  const [amountPaid, setAmountPaid] = useState('3500');
+  const [amountPaid, setAmountPaid] = useState('');
   const [proofUrl, setProofUrl] = useState('');
   const [transferNotes, setTransferNotes] = useState('');
 
@@ -46,6 +48,13 @@ export const SubscriptionPlans: React.FC = () => {
   const [receiptUploadError, setReceiptUploadError] = useState<string | null>(null);
   const [showManualUrlInput, setShowManualUrlInput] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Prefill the declared amount from the live database price whenever the plan or its price changes.
+  React.useEffect(() => {
+    if (!showManualModal) return;
+    const selected = plans?.find((p) => p.id === manualPlan);
+    setAmountPaid(selected?.priceKobo != null ? koboToNairaInput(selected.priceKobo) : '');
+  }, [showManualModal, manualPlan, plans]);
 
   const handleReceiptFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -112,6 +121,18 @@ export const SubscriptionPlans: React.FC = () => {
     }
 
     const reference = initData.reference;
+
+    // The server is the source of truth. If the price the student was shown is no longer the price the
+    // server locked for this checkout, stop and show the updated price instead of charging a surprise amount.
+    const displayedPlan = plans?.find((p) => p.id === planId);
+    if (displayedPlan?.priceKobo != null && displayedPlan.priceKobo !== initData.amountKobo) {
+      void refetchPlans();
+      const changedMsg = `The price for this plan was just updated to ${formatKoboAsNaira(initData.amountKobo)}. Please review the new price and try again.`;
+      setErrorNotice(changedMsg);
+      notifyInfo(changedMsg);
+      setProcessingPlan(null);
+      return;
+    }
     const accessCode = initData.accessCode;
 
     // Step 2: Open Paystack V2 checkout popup
@@ -125,7 +146,7 @@ export const SubscriptionPlans: React.FC = () => {
               const verifiedRef = transaction?.reference || reference;
               await verifyMutation.mutateAsync(verifiedRef);
               await refetchSub();
-              const planName = planId === 'PRO_ANNUAL' ? 'Annual Scholar Pass' : 'Monthly Pro Pass';
+              const planName = plans?.find((p) => p.id === planId)?.name ?? 'Pro';
               const successMsg = `Payment confirmed! Your ${planName} subscription is now active.`;
               setSuccessNotice(successMsg);
               notifySuccess(successMsg);
@@ -301,7 +322,6 @@ export const SubscriptionPlans: React.FC = () => {
                   type="button"
                   onClick={() => {
                     setManualPlan('PRO_ANNUAL');
-                    setAmountPaid('25000');
                     setShowManualModal(true);
                   }}
                   className="btn-custom btn-custom-ghost"
@@ -417,7 +437,7 @@ export const SubscriptionPlans: React.FC = () => {
                     <div style={{ margin: '0 0 24px', padding: '16px 0', borderTop: '1px solid var(--cream-deep)', borderBottom: '1px solid var(--cream-deep)' }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
                         <span style={{ fontSize: '32px', fontWeight: 800, fontFamily: "var(--font-sans)", color: 'var(--ink)' }}>
-                          {plan.priceNGN === 0 ? '₦0' : `₦${plan.priceNGN.toLocaleString()}`}
+                          {plan.priceKobo === null ? 'Unavailable' : formatKoboAsNaira(plan.priceKobo)}
                         </span>
                         <span style={{ fontSize: '12px', color: 'var(--slate)' }}>/ {plan.billingPeriod}</span>
                       </div>
@@ -471,6 +491,22 @@ export const SubscriptionPlans: React.FC = () => {
                         }}
                       >
                         Included by Default
+                      </button>
+                    ) : !plan.purchasable ? (
+                      <button
+                        disabled
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          background: 'var(--cream)',
+                          border: '1px solid var(--cream-deep)',
+                          color: 'var(--slate)',
+                          fontFamily: "var(--font-sans)",
+                          fontSize: '12px',
+                          cursor: 'not-allowed',
+                        }}
+                      >
+                        Currently unavailable
                       </button>
                     ) : (
                       <button
@@ -637,19 +673,17 @@ export const SubscriptionPlans: React.FC = () => {
                   <select
                     value={manualPlan}
                     onChange={(e) => {
-                      const p = e.target.value as 'PRO_MONTHLY' | 'PRO_BIMONTHLY' | 'PRO_QUARTERLY' | 'PRO_ANNUAL';
-                      setManualPlan(p);
-                      if (p === 'PRO_ANNUAL') setAmountPaid('25000');
-                      else if (p === 'PRO_QUARTERLY') setAmountPaid('10000');
-                      else if (p === 'PRO_BIMONTHLY') setAmountPaid('6500');
-                      else setAmountPaid('3500');
+                      setManualPlan(e.target.value as 'PRO_MONTHLY' | 'PRO_BIMONTHLY' | 'PRO_QUARTERLY' | 'PRO_ANNUAL');
                     }}
                     style={{ width: '100%', padding: '10px', borderRadius: '3px', border: '1px solid var(--paper-line)' }}
                   >
-                    <option value="PRO_MONTHLY">1 Month Pro Pass — ₦3,500</option>
-                    <option value="PRO_BIMONTHLY">2 Months Intensive Pass — ₦6,500</option>
-                    <option value="PRO_QUARTERLY">3 Months Term Scholar — ₦10,000</option>
-                    <option value="PRO_ANNUAL">1 Year Annual Scholar — ₦25,000</option>
+                    {(plans ?? [])
+                      .filter((p) => p.id !== 'FREE' && p.purchasable)
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} — {formatKoboAsNaira(p.priceKobo)}
+                        </option>
+                      ))}
                   </select>
                 </div>
 

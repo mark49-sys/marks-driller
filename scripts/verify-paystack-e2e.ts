@@ -74,6 +74,11 @@ async function runE2EPaystackVerification() {
 
   await ensureServerRunning();
 
+  // Wait for MongoDB to be fully connected
+  for (let i = 0; i < 30; i++) {
+    if (mongoose.connection.readyState === 1) break;
+    await new Promise((r) => setTimeout(r, 500));
+  }
   if (mongoose.connection.readyState !== 1) {
     await mongoose.connect(env.MONGODB_URI);
   }

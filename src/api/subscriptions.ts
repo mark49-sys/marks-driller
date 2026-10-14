@@ -4,12 +4,35 @@ import { apiClient } from './client.js';
 export interface PlanTier {
   id: 'FREE' | 'PRO_MONTHLY' | 'PRO_BIMONTHLY' | 'PRO_QUARTERLY' | 'PRO_ANNUAL';
   name: string;
-  priceNGN: number;
-  priceKobo: number;
+  /** null when the admin has not configured a valid price for this plan. */
+  priceNGN: number | null;
+  priceKobo: number | null;
+  currency: string;
   billingPeriod: string;
   description: string;
   features: string[];
   isPopular: boolean;
+  /** false when the plan is free, disabled, or has no valid price. */
+  purchasable: boolean;
+}
+
+export const PLANS_QUERY_KEY = ['subscription', 'plans'] as const;
+
+/** Formats an amount in kobo for display, e.g. 350000 -> "₦3,500". */
+export function formatKoboAsNaira(kobo: number | null | undefined): string {
+  if (kobo === null || kobo === undefined) return '—';
+  const naira = kobo / 100;
+  return `₦${naira.toLocaleString('en-NG', {
+    minimumFractionDigits: Number.isInteger(naira) ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+/** Converts integer kobo to a plain decimal string for an input field, e.g. 350000 -> "3500", 350050 -> "3500.50". */
+export function koboToNairaInput(kobo: number): string {
+  const whole = Math.floor(kobo / 100);
+  const fraction = kobo % 100;
+  return fraction === 0 ? String(whole) : `${whole}.${String(fraction).padStart(2, '0')}`;
 }
 
 export interface UserSubscription {
@@ -38,9 +61,12 @@ export interface UserSubscription {
 
 export function useSubscriptionPlansQuery() {
   return useQuery<PlanTier[]>({
-    queryKey: ['subscription', 'plans'],
+    queryKey: PLANS_QUERY_KEY,
     queryFn: () => apiClient<PlanTier[]>('/api/subscriptions/plans'),
-    staleTime: 300000,
+    // Prices are admin-editable: keep the cache very short-lived and re-check whenever the user returns.
+    staleTime: 15000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
   });
 }
 

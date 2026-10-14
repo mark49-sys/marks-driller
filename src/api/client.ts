@@ -6,6 +6,7 @@ export interface ApiResponse<T = unknown> {
   message?: string;
   error?: {
     message: string;
+    code?: string;
     details?: Record<string, string[]>;
   };
 }
@@ -13,12 +14,14 @@ export interface ApiResponse<T = unknown> {
 export class ApiError extends Error {
   public readonly statusCode: number;
   public readonly details?: Record<string, string[]>;
+  public readonly code?: string;
 
-  constructor(message: string, statusCode: number = 500, details?: Record<string, string[]>) {
+  constructor(message: string, statusCode: number = 500, details?: Record<string, string[]>, code?: string) {
     super(message);
     this.name = 'ApiError';
     this.statusCode = statusCode;
     this.details = details;
+    this.code = code;
   }
 }
 
@@ -83,7 +86,7 @@ export async function apiClient<T>(
       }
     }
 
-    throw new ApiError(errorMsg, response.status, json?.error?.details);
+    throw new ApiError(errorMsg, response.status, json?.error?.details, json?.error?.code);
   }
 
   return json.data as T;

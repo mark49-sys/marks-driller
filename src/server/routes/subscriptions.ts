@@ -3,7 +3,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
-import { Subscription, PlanType } from '../models/Subscription.js';
+import { Subscription } from '../models/Subscription.js';
 import { Payment } from '../models/Payment.js';
 import { User } from '../models/User.js';
 import { SystemSetting } from '../models/SystemSetting.js';
@@ -14,108 +14,40 @@ import { receiptUpload, validateReceiptFileSignature, RECEIPTS_DIR_ABSOLUTE } fr
 import { CloudinaryService } from '../services/cloudinaryService.js';
 import { env } from '../config/env.js';
 import { FreeTrialService } from '../services/freeTrialService.js';
+import {
+  PAID_PLAN_IDS,
+  PricingError,
+  getChargeablePlanPrice,
+  getPlanName,
+  listPublicPlans,
+  parseNairaToKobo,
+} from '../services/pricingService.js';
+import {
+  checkChargeAgainstPayment,
+  flagPaymentForReconciliation,
+  fulfilGatewayPayment,
+} from '../services/paymentFulfilmentService.js';
 
 const router = Router();
 
-export const SUBSCRIPTION_PLANS = [
-  {
-    id: 'FREE',
-    name: 'Free Starter',
-    priceNGN: 0,
-    priceKobo: 0,
-    billingPeriod: 'Forever Free',
-    description: 'Essential revision tools for secondary students beginning exam prep.',
-    features: [
-      'Strict 3 Free Trial examination attempts',
-      'Year 2024 Past Questions included across all subjects',
-      'Basic student dashboard & score history',
-      'Instant result slip & score overview',
-    ],
-    isPopular: false,
-  },
-  {
-    id: 'PRO_MONTHLY',
-    name: '1 Month Pro Pass',
-    priceNGN: 3500,
-    priceKobo: 350000,
-    billingPeriod: '1 Month',
-    description: 'Complete high-stakes preparation suite for JAMB / UTME and WAEC candidates.',
-    features: [
-      'Unlimited CBT examinations with official timer',
-      'Full question bank access (all years 2015–2025)',
-      'Detailed step-by-step worked mathematical solutions',
-      'In-depth syllabus topic mastery & weakness analytics',
-      'Downloadable curriculum notes and revision summaries',
-    ],
-    isPopular: false,
-  },
-  {
-    id: 'PRO_BIMONTHLY',
-    name: '2 Months Intensive Pass',
-    priceNGN: 6500,
-    priceKobo: 650000,
-    billingPeriod: '2 Months (Fixed Duration)',
-    description: 'Two-month dedicated preparation pass for exam revision and multi-subject mocks.',
-    features: [
-      'All Pro features for a fixed 60-day period',
-      'Multi-year past question pooling (2015–2025)',
-      'Advanced timing & question shuffle options',
-      'Complete worked solutions & step-by-step rationales',
-      'Full performance analytics & weakness diagnostics',
-    ],
-    isPopular: true,
-  },
-  {
-    id: 'PRO_QUARTERLY',
-    name: '3 Months Term Scholar',
-    priceNGN: 10000,
-    priceKobo: 1000000,
-    billingPeriod: '3 Months (Quarterly)',
-    description: 'Complete academic term syllabus coverage for secondary & UTME candidates.',
-    features: [
-      'All Pro features for full 90-day term',
-      'Unlimited CBT timed examinations',
-      'Priority offline study material access',
-      'Topic-by-topic mastery tracking',
-      'Save ₦500 compared to monthly renewal',
-    ],
-    isPopular: false,
-  },
-  {
-    id: 'PRO_ANNUAL',
-    name: '1 Year Annual Scholar',
-    priceNGN: 25000,
-    priceKobo: 2500000,
-    billingPeriod: '1 Year (Save 40%)',
-    description: 'Full-year comprehensive coverage for Post-UTME, WAEC, NECO and university admissions.',
-    features: [
-      'All Pro features included for 365 days',
-      'Post-UTME university-specific screening drills',
-      'Offline PDF download bundles for all subjects',
-      'Dedicated academic counseling webinars',
-      'Guaranteed syllabus updates for 2026/2027 sessions',
-    ],
-    isPopular: false,
-  },
-];
-
-export function getPlanDurationDays(plan: PlanType): number {
-  switch (plan) {
-    case 'PRO_ANNUAL':
-      return 365;
-    case 'PRO_QUARTERLY':
-      return 90;
-    case 'PRO_BIMONTHLY':
-      return 60;
-    case 'PRO_MONTHLY':
-    default:
-      return 30;
+function respondWithPricingError(error: unknown, res: Response): boolean {
+  if (error instanceof PricingError) {
+    res.status(error.status).json({ success: false, error: { message: error.message, code: error.code } });
+    return true;
   }
+  return false;
 }
 
-// GET /api/subscriptions/plans — Public subscription tiers
-router.get('/plans', (_req: Request, res: Response) => {
-  res.status(200).json({ success: true, data: SUBSCRIPTION_PLANS });
+// GET /api/subscriptions/plans — Public subscription tiers (prices come from the database)
+router.get('/plans', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const plans = await listPublicPlans();
+    // Prices are admin-editable: never let browsers or proxies keep a stale copy.
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
+    res.status(200).json({ success: true, data: plans });
+  } catch (error) {
+    next(error);
+  }
 });
 
 export interface DynamicBankDetails {
@@ -224,11 +156,11 @@ router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
 
     const event = req.body;
 
-    if (event && event.event === 'charge.success') {
-      const { reference, amount } = event.data;
+    if (event && event.event === 'charge.success' && event.data && typeof event.data.reference === 'string') {
+      const { reference } = event.data;
 
       const payment = await Payment.findOne({ reference });
-      if (!payment) {
+      if (!payment || payment.provider !== 'PAYSTACK') {
         // Unknown transaction reference
         res.status(200).json({ status: 'ignored', message: 'Payment record not found locally.' });
         return;
@@ -240,47 +172,38 @@ router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
         return;
       }
 
-      payment.status = 'SUCCESS';
-      payment.paidAt = event.data.paid_at ? new Date(event.data.paid_at) : new Date();
-      payment.channel = event.data.channel || 'card';
-      await payment.save();
+      const check = checkChargeAgainstPayment(payment, {
+        status: String(event.data.status ?? ''),
+        reference: String(reference),
+        amountKobo: Number(event.data.amount),
+        currency: String(event.data.currency ?? ''),
+      });
 
-      const plan: PlanType = payment.metadata?.plan || 'PRO_MONTHLY';
-      const durationDays = getPlanDurationDays(plan);
-      const startDate = new Date();
-      const endDate = new Date(startDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
-
-      let subscription = await Subscription.findOne({ userId: payment.userId });
-      if (subscription) {
-        subscription.plan = plan;
-        subscription.status = 'ACTIVE';
-        subscription.startDate = startDate;
-        subscription.endDate = endDate;
-        await subscription.save();
-      } else {
-        subscription = await Subscription.create({
-          userId: payment.userId,
-          plan,
-          status: 'ACTIVE',
-          startDate,
-          endDate,
-        });
+      if (!check.ok) {
+        // Signed event, but it does not match what we asked the customer to pay.
+        console.warn(`[Payments] Webhook reconciliation issue for ${reference}: ${check.reason}`);
+        await flagPaymentForReconciliation(payment._id, check.reason);
+        res.status(200).json({ status: 'ignored', message: 'Charge did not match the initialized payment.' });
+        return;
       }
 
-      payment.subscriptionId = subscription._id;
-      await payment.save();
+      const result = await fulfilGatewayPayment(payment, {
+        paidAt: event.data.paid_at ? new Date(event.data.paid_at) : new Date(),
+        channel: event.data.channel,
+      });
 
-      // Send confirmation email asynchronously
-      const user = await User.findById(payment.userId);
-      if (user) {
-        const planConfig = SUBSCRIPTION_PLANS.find((p) => p.id === plan);
-        sendSubscriptionEmail(
-          user.email,
-          user.fullName,
-          planConfig?.name || plan,
-          Math.round((amount || payment.amountKobo) / 100),
-          reference
-        );
+      // Send confirmation email asynchronously (only for the delivery that actually fulfilled it)
+      if (!result.alreadyProcessed) {
+        const user = await User.findById(payment.userId);
+        if (user) {
+          sendSubscriptionEmail(
+            user.email,
+            user.fullName,
+            getPlanName(String(payment.metadata?.plan)),
+            payment.amountKobo / 100,
+            reference
+          );
+        }
       }
     }
 
@@ -376,9 +299,12 @@ router.get('/my-subscription', async (req: AuthenticatedRequest, res: Response, 
 });
 
 
-const initializeSchema = z.object({
-  plan: z.enum(['PRO_MONTHLY', 'PRO_BIMONTHLY', 'PRO_QUARTERLY', 'PRO_ANNUAL']),
-});
+const initializeSchema = z
+  .object({
+    plan: z.enum(PAID_PLAN_IDS),
+  })
+  // Reject any extra key (e.g. amount, price, amountKobo): the browser never influences what is charged.
+  .strict();
 
 // POST /api/subscriptions/initialize — Generate Paystack transaction reference
 router.post('/initialize', async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -387,40 +313,42 @@ router.post('/initialize', async (req: AuthenticatedRequest, res: Response, next
     const userId = req.user!._id;
     const userEmail = req.user!.email;
 
-    const planConfig = SUBSCRIPTION_PLANS.find((p) => p.id === plan);
-    if (!planConfig) {
-      res.status(400).json({ success: false, error: { message: 'Invalid subscription tier.' } });
-      return;
-    }
+    // Authoritative price lookup (database). Throws rather than falling back to a default.
+    const price = await getChargeablePlanPrice(plan);
+    const planName = getPlanName(plan);
 
     // Generate unique collision-resistant transaction reference
     const reference = `MD_${Date.now()}_${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
-    // Initialize with Paystack API
+    // Initialize with Paystack API (amount is in the currency subunit: kobo)
     const paystackInit = await PaystackService.initializeTransaction({
       email: userEmail,
-      amountKobo: planConfig.priceKobo,
+      amountKobo: price.amountKobo,
+      currency: price.currency,
       reference,
       plan,
       metadata: {
         userId: userId.toString(),
         userEmail,
-        planName: planConfig.name,
+        planName,
       },
     });
 
-    // Create Payment record in PENDING status
+    // Create Payment record in PENDING status. The amount and currency are LOCKED here:
+    // later admin price changes never alter an already-initialized transaction.
     const payment = await Payment.create({
       userId,
       reference,
-      amountKobo: planConfig.priceKobo,
-      currency: 'NGN',
+      amountKobo: price.amountKobo,
+      currency: price.currency,
       provider: 'PAYSTACK',
       status: 'PENDING',
       metadata: {
         plan,
         userEmail,
-        planName: planConfig.name,
+        planName,
+        priceVersion: price.version,
+        priceLockedAt: new Date(),
         accessCode: paystackInit.accessCode,
         authorizationUrl: paystackInit.authorizationUrl,
       },
@@ -447,12 +375,13 @@ router.post('/initialize', async (req: AuthenticatedRequest, res: Response, next
       });
       return;
     }
+    if (respondWithPricingError(error, res)) return;
     next(error);
   }
 });
 
 const verifySchema = z.object({
-  reference: z.string().min(1, 'Reference is required'),
+  reference: z.string().min(1, 'Reference is required').max(100),
 });
 
 // POST /api/subscriptions/verify — Verify Paystack reference and activate student tier
@@ -464,6 +393,11 @@ router.post('/verify', async (req: AuthenticatedRequest, res: Response, next: Ne
     const payment = await Payment.findOne({ reference, userId });
     if (!payment) {
       res.status(404).json({ success: false, error: { message: 'Transaction reference not found.' } });
+      return;
+    }
+
+    if (payment.provider !== 'PAYSTACK') {
+      res.status(400).json({ success: false, error: { message: 'This reference is not an online card payment.' } });
       return;
     }
 
@@ -481,88 +415,81 @@ router.post('/verify', async (req: AuthenticatedRequest, res: Response, next: Ne
       return;
     }
 
-    // Server-side verification with official Paystack API
-    const verification = await PaystackService.verifyTransaction(reference);
+    if (payment.status !== 'PENDING') {
+      res.status(409).json({ success: false, error: { message: 'This transaction can no longer be verified.' } });
+      return;
+    }
 
-    if (!verification.success || verification.status !== 'success') {
+    // Server-side verification with official Paystack API. The browser's claim of success is never trusted.
+    const verification = await PaystackService.verifyTransaction(reference, {
+      amountKobo: payment.amountKobo,
+      currency: payment.currency,
+    });
+
+    const check = checkChargeAgainstPayment(payment, {
+      status: verification.success ? verification.status : 'failed',
+      reference: verification.reference,
+      amountKobo: verification.amountKobo,
+      currency: verification.currency,
+    });
+
+    if (!check.ok) {
+      const isGatewayNotSuccessful = check.reason === 'GATEWAY_STATUS_NOT_SUCCESS';
+      if (!isGatewayNotSuccessful) {
+        console.warn(`[Payments] Verification reconciliation issue for ${reference}: ${check.reason}`);
+        await flagPaymentForReconciliation(payment._id, check.reason);
+      }
       res.status(400).json({
         success: false,
-        error: { message: 'Paystack transaction could not be confirmed as successful.' },
+        error: {
+          message: isGatewayNotSuccessful
+            ? 'Paystack transaction could not be confirmed as successful.'
+            : 'Payment verification failed because the charge does not match the initialized payment.',
+        },
       });
       return;
     }
 
-    // Validate amount integrity if returned by gateway
-    if (verification.amountKobo > 0 && verification.amountKobo !== payment.amountKobo) {
-      res.status(400).json({
-        success: false,
-        error: { message: 'Payment verification failed due to amount mismatch.' },
-      });
-      return;
+    const result = await fulfilGatewayPayment(payment, {
+      paidAt: verification.paidAt,
+      channel: verification.channel,
+    });
+    const subscription = result.subscription ?? (await Subscription.findOne({ userId }));
+
+    // Send confirmation email asynchronously (only when this call performed the fulfilment)
+    if (!result.alreadyProcessed) {
+      sendSubscriptionEmail(
+        req.user!.email,
+        req.user!.fullName,
+        getPlanName(String(payment.metadata?.plan)),
+        payment.amountKobo / 100,
+        payment.reference
+      );
     }
-
-    // Mark payment success
-    payment.status = 'SUCCESS';
-    payment.paidAt = verification.paidAt || new Date();
-    payment.channel = verification.channel || 'card';
-    await payment.save();
-
-    const plan: PlanType = payment.metadata?.plan || 'PRO_MONTHLY';
-    const durationDays = getPlanDurationDays(plan);
-
-    const startDate = new Date();
-    const endDate = new Date(startDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
-
-    // Create or update subscription record
-    let subscription = await Subscription.findOne({ userId });
-    if (subscription) {
-      subscription.plan = plan;
-      subscription.status = 'ACTIVE';
-      subscription.startDate = startDate;
-      subscription.endDate = endDate;
-      await subscription.save();
-    } else {
-      subscription = await Subscription.create({
-        userId,
-        plan,
-        status: 'ACTIVE',
-        startDate,
-        endDate,
-      });
-    }
-
-    payment.subscriptionId = subscription._id;
-    await payment.save();
-
-    // Send confirmation email asynchronously
-    const planConfig = SUBSCRIPTION_PLANS.find((p) => p.id === plan);
-    sendSubscriptionEmail(
-      req.user!.email,
-      req.user!.fullName,
-      planConfig?.name || plan,
-      Math.round(payment.amountKobo / 100),
-      payment.reference
-    );
 
     res.status(200).json({
       success: true,
       message: 'Subscription successfully activated!',
       data: {
-        plan: subscription.plan,
-        status: subscription.status,
-        startDate: subscription.startDate,
-        endDate: subscription.endDate,
+        plan: subscription?.plan,
+        status: subscription?.status,
+        startDate: subscription?.startDate,
+        endDate: subscription?.endDate,
         reference: payment.reference,
         isPro: true,
       },
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ success: false, error: { message: 'Validation failed', details: error.flatten().fieldErrors } });
+      return;
+    }
     next(error);
   }
 });
 
 const manualProofSchema = z.object({
-  plan: z.enum(['PRO_MONTHLY', 'PRO_BIMONTHLY', 'PRO_QUARTERLY', 'PRO_ANNUAL']),
+  plan: z.enum(PAID_PLAN_IDS),
   depositorName: z.string().trim().min(2, 'Depositor name must be at least 2 characters'),
   bankName: z.string().trim().min(2, 'Bank name is required'),
   amountPaidNGN: z.number().positive('Amount paid must be greater than zero'),
@@ -654,9 +581,16 @@ router.post(
       const data = manualProofSchema.parse(req.body);
       const userId = req.user!._id;
 
-      const planConfig = SUBSCRIPTION_PLANS.find((p) => p.id === data.plan);
-      if (!planConfig) {
-        res.status(400).json({ success: false, error: { message: 'Invalid subscription plan selected.' } });
+      // Authoritative price snapshot at submission time (database, never the browser)
+      const price = await getChargeablePlanPrice(data.plan);
+      const planName = getPlanName(data.plan);
+
+      const declaredAmountKobo = parseNairaToKobo(data.amountPaidNGN);
+      if (declaredAmountKobo === null || declaredAmountKobo <= 0) {
+        res.status(400).json({
+          success: false,
+          error: { message: 'Please provide a valid amount paid in NGN (up to 2 decimal places).' },
+        });
         return;
       }
 
@@ -684,7 +618,7 @@ router.post(
       const payment = await Payment.create({
         userId,
         reference,
-        amountKobo: Math.round(data.amountPaidNGN * 100),
+        amountKobo: declaredAmountKobo,
         currency: 'NGN',
         provider: 'MANUAL_BANK_TRANSFER',
         status: 'PENDING_REVIEW',
@@ -695,7 +629,9 @@ router.post(
         transferDate: data.transferDate ? new Date(data.transferDate) : new Date(),
         metadata: {
           plan: data.plan,
-          planName: planConfig.name,
+          planName,
+          expectedAmountKobo: price.amountKobo,
+          priceVersion: price.version,
           notes: data.notes || '',
           userEmail: req.user!.email,
           userFullName: req.user!.fullName,
@@ -721,6 +657,7 @@ router.post(
         });
         return;
       }
+      if (respondWithPricingError(error, res)) return;
       next(error);
     }
   }

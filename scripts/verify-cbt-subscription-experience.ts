@@ -5,7 +5,7 @@ import { User } from '../src/server/models/User.js';
 import { Exam } from '../src/server/models/Exam.js';
 import { Subject } from '../src/server/models/Subject.js';
 import { Subscription } from '../src/server/models/Subscription.js';
-import { SUBSCRIPTION_PLANS } from '../src/server/routes/subscriptions.js';
+import { listPublicPlans, isValidPriceKobo } from '../src/server/services/pricingService.js';
 import { ExamAttempt } from '../src/server/models/ExamAttempt.js';
 import { Result } from '../src/server/models/Result.js';
 import { Notification } from '../src/server/models/Notification.js';
@@ -60,15 +60,20 @@ async function runTest() {
   // 1. SUBSCRIPTION PRICING AUDIT (Req 16)
   // ========================================================
   console.log('\n--- 1. Subscription Pricing Structure Audit ---');
-  const monthlyPlan = SUBSCRIPTION_PLANS.find((p) => p.id === 'PRO_MONTHLY');
-  const bimonthlyPlan = SUBSCRIPTION_PLANS.find((p) => p.id === 'PRO_BIMONTHLY');
-  const quarterlyPlan = SUBSCRIPTION_PLANS.find((p) => p.id === 'PRO_QUARTERLY');
-  const annualPlan = SUBSCRIPTION_PLANS.find((p) => p.id === 'PRO_ANNUAL');
-
-  record('Pricing', 'Monthly Plan = ₦3,500', monthlyPlan?.priceNGN === 3500 && monthlyPlan?.priceKobo === 350000);
-  record('Pricing', '2-Month Plan = ₦6,500', bimonthlyPlan?.priceNGN === 6500 && bimonthlyPlan?.priceKobo === 650000);
-  record('Pricing', '3-Month Plan = ₦10,000', quarterlyPlan?.priceNGN === 10000 && quarterlyPlan?.priceKobo === 1000000);
-  record('Pricing', '1-Year Plan = ₦25,000', annualPlan?.priceNGN === 25000 && annualPlan?.priceKobo === 2500000);
+  if (isConnectedToDb) {
+    const livePlans = await listPublicPlans();
+    for (const planId of ['PRO_MONTHLY', 'PRO_BIMONTHLY', 'PRO_QUARTERLY', 'PRO_ANNUAL']) {
+      const plan = livePlans.find((p) => p.id === planId);
+      record(
+        'Pricing',
+        `${planId} has a valid database-backed price`,
+        Boolean(plan && isValidPriceKobo(plan.priceKobo) && plan.priceNGN === (plan.priceKobo as number) / 100),
+        `priceKobo=${plan?.priceKobo}`
+      );
+    }
+  } else {
+    record('Pricing', 'Database-backed pricing requires a live database connection (skipped offline)', true);
+  }
 
   // ========================================================
   // 2. FREE ACCESS YEAR ENTITLEMENT (Req 13, 15)

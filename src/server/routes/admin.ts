@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { z } from 'zod';
 import fs from 'fs';
 import path from 'path';
+import { randomUUID } from 'node:crypto';
 import { User } from '../models/User.js';
 import { Question } from '../models/Question.js';
 import { Exam } from '../models/Exam.js';
@@ -28,7 +29,18 @@ import { questionSyncScheduler } from '../services/questionSyncScheduler.js';
 import { CompositeQuestionSourceAdapter } from '../services/questionSourceAdapter.js';
 import { metadataCache } from '../utils/cache.js';
 import { sendSubscriptionEmail, sendSupportComplaintNotificationEmail } from '../services/emailService.js';
-import { SUBSCRIPTION_PLANS, getDynamicBankDetails } from './subscriptions.js';
+import { getDynamicBankDetails } from './subscriptions.js';
+import {
+  PAID_PLAN_IDS,
+  PricingError,
+  getAdminPricing,
+  getPlanName,
+  isPaidPlanId,
+  listPriceAudit,
+  parseNairaToKobo,
+  updatePlanPrice,
+} from '../services/pricingService.js';
+import { activateSubscription } from '../services/paymentFulfilmentService.js';
 import { getDynamicSupportConfig } from '../services/supportConfigService.js';
 
 const router = Router();
@@ -72,7 +84,7 @@ router.get('/overview', async (_req: AuthenticatedRequest, res: Response, next: 
       Topic.countDocuments(),
       StudyMaterial.countDocuments(),
       ExamAttempt.countDocuments(),
-      Subscription.countDocuments({ status: 'ACTIVE', plan: { $in: ['PRO_MONTHLY', 'PRO_ANNUAL'] } }),
+      Subscription.countDocuments({ status: 'ACTIVE', plan: { $in: PAID_PLAN_IDS as unknown as string[] } }),
       Payment.countDocuments({ status: 'SUCCESS' }),
       Payment.aggregate([
         { $match: { status: 'SUCCESS' } },
@@ -804,50 +816,75 @@ router.post('/payments/:id/approve', async (req: AuthenticatedRequest, res: Resp
       return;
     }
 
-    const plan = payment.metadata?.plan || 'PRO_MONTHLY';
-    const durationDays = plan === 'PRO_ANNUAL' ? 365 : 30;
-    const startDate = new Date();
-    const endDate = new Date(startDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
-
-    // Create or update subscription record
-    let subscription = await Subscription.findOne({ userId: payment.userId });
-    if (subscription) {
-      subscription.plan = plan;
-      subscription.status = 'ACTIVE';
-      subscription.startDate = startDate;
-      subscription.endDate = endDate;
-      await subscription.save();
-    } else {
-      subscription = await Subscription.create({
-        userId: payment.userId,
-        plan,
-        status: 'ACTIVE',
-        startDate,
-        endDate,
+    // Only manually reviewed bank transfers may be approved here. Card payments are
+    // activated exclusively by gateway-verified webhook/verify flows.
+    if (payment.provider !== 'MANUAL_BANK_TRANSFER') {
+      res.status(400).json({
+        success: false,
+        error: { message: 'Only manual bank transfer proofs can be approved by an administrator.' },
       });
+      return;
     }
 
-    // Mark payment success with reviewer audit trail
-    payment.status = 'SUCCESS';
-    payment.subscriptionId = subscription._id;
-    payment.paidAt = new Date();
-    payment.reviewedBy = adminUser._id;
-    payment.reviewedAt = new Date();
-    if (req.body.adminReviewNotes) {
-      payment.adminReviewNotes = String(req.body.adminReviewNotes).trim();
+    const plan = payment.metadata?.plan;
+    if (!isPaidPlanId(plan)) {
+      res.status(400).json({ success: false, error: { message: 'Payment record has no valid subscription plan.' } });
+      return;
     }
-    await payment.save();
+
+    // Under-payment guard: compare what the student declared with the price snapshotted at submission.
+    const expectedKobo = Number(payment.metadata?.expectedAmountKobo);
+    const acknowledgeShortfall = req.body?.acknowledgeShortfall === true;
+    if (Number.isSafeInteger(expectedKobo) && expectedKobo > 0 && payment.amountKobo < expectedKobo && !acknowledgeShortfall) {
+      res.status(409).json({
+        success: false,
+        error: {
+          code: 'AMOUNT_SHORTFALL',
+          message: `Declared amount (₦${(payment.amountKobo / 100).toLocaleString()}) is below the plan price at submission (₦${(expectedKobo / 100).toLocaleString()}). Confirm explicitly to approve anyway.`,
+        },
+      });
+      return;
+    }
+
+    // Atomic claim: two admins approving at once cannot double-activate.
+    const reviewNotes = req.body?.adminReviewNotes ? String(req.body.adminReviewNotes).trim().slice(0, 1000) : undefined;
+    const claimed = await Payment.findOneAndUpdate(
+      { _id: payment._id, status: { $ne: 'SUCCESS' } },
+      {
+        $set: {
+          status: 'SUCCESS',
+          paidAt: new Date(),
+          reviewedBy: adminUser._id,
+          reviewedAt: new Date(),
+          ...(reviewNotes ? { adminReviewNotes: reviewNotes } : {}),
+        },
+      },
+      { new: true }
+    );
+    if (!claimed) {
+      res.status(400).json({ success: false, error: { message: 'Payment has already been approved and activated.' } });
+      return;
+    }
+
+    let subscription;
+    try {
+      subscription = await activateSubscription(claimed.userId, plan);
+    } catch (activationError) {
+      await Payment.updateOne({ _id: claimed._id }, { $set: { status: payment.status } });
+      throw activationError;
+    }
+    claimed.subscriptionId = subscription._id;
+    await claimed.save();
 
     // Fetch user for confirmation email
-    const studentUser = await User.findById(payment.userId);
+    const studentUser = await User.findById(claimed.userId);
     if (studentUser) {
-      const planConfig = SUBSCRIPTION_PLANS.find((p) => p.id === plan);
       sendSubscriptionEmail(
         studentUser.email,
         studentUser.fullName,
-        planConfig?.name || plan,
-        Math.round(payment.amountKobo / 100),
-        payment.reference
+        getPlanName(plan),
+        claimed.amountKobo / 100,
+        claimed.reference
       );
     }
 
@@ -855,11 +892,11 @@ router.post('/payments/:id/approve', async (req: AuthenticatedRequest, res: Resp
       success: true,
       message: `Payment proof approved successfully. Student account activated on ${plan} tier.`,
       data: {
-        paymentId: payment._id,
-        reference: payment.reference,
-        status: payment.status,
+        paymentId: claimed._id,
+        reference: claimed.reference,
+        status: claimed.status,
         plan,
-        expiresAt: endDate,
+        expiresAt: subscription.endDate,
       },
     });
   } catch (error) {
@@ -909,6 +946,95 @@ router.post('/payments/:id/reject', async (req: AuthenticatedRequest, res: Respo
       res.status(400).json({ success: false, error: { message: 'Validation failed', details: error.flatten().fieldErrors } });
       return;
     }
+    next(error);
+  }
+});
+
+// ----------------------------------------------------
+// 11B. PRICING & MONEY SETTINGS (database-backed, audited)
+// ----------------------------------------------------
+const pricingUpdateSchema = z
+  .object({
+    // Naira amount as typed by the admin. Parsed to integer kobo on the server (no floats).
+    amountNGN: z.union([z.string().trim().min(1).max(15), z.number()]),
+    enabled: z.boolean().optional(),
+    expectedVersion: z.number().int().min(0),
+  })
+  .strict();
+
+function respondWithPricingFailure(error: unknown, res: Response): boolean {
+  if (error instanceof PricingError) {
+    res.status(error.status).json({ success: false, error: { message: error.message, code: error.code } });
+    return true;
+  }
+  if (error instanceof z.ZodError) {
+    res.status(400).json({ success: false, error: { message: 'Validation failed', details: error.flatten().fieldErrors } });
+    return true;
+  }
+  return false;
+}
+
+// GET /api/admin/pricing — Current saved price for every paid plan
+router.get('/pricing', async (_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const plans = await getAdminPricing();
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(200).json({ success: true, data: { plans } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/admin/pricing/audit — Read-only history of price changes (append-only)
+router.get('/pricing/audit', async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const planId = typeof req.query.planId === 'string' ? req.query.planId : undefined;
+    const limit = typeof req.query.limit === 'string' ? parseInt(req.query.limit, 10) : undefined;
+    const entries = await listPriceAudit({ planId, limit: Number.isFinite(limit) ? limit : undefined });
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(200).json({ success: true, data: { entries } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PUT /api/admin/pricing/:planId — Update a plan price (administrator only)
+router.put('/pricing/:planId', async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const rawPlanId = Array.isArray(req.params.planId) ? req.params.planId[0] : req.params.planId;
+    if (!isPaidPlanId(rawPlanId)) {
+      res.status(400).json({ success: false, error: { message: 'Invalid subscription tier.' } });
+      return;
+    }
+
+    const body = pricingUpdateSchema.parse(req.body);
+    const amountKobo = parseNairaToKobo(body.amountNGN);
+    if (amountKobo === null) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_AMOUNT', message: 'Enter a valid positive naira amount with at most 2 decimal places.' },
+      });
+      return;
+    }
+
+    const result = await updatePlanPrice({
+      planId: rawPlanId,
+      amountKobo,
+      enabled: body.enabled,
+      expectedVersion: body.expectedVersion,
+      adminId: req.user!._id,
+      adminEmail: req.user!.email,
+      requestId: randomUUID(),
+    });
+
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(200).json({
+      success: true,
+      message: result.changed ? 'Price saved and applied platform-wide.' : 'No changes to save.',
+      data: { changed: result.changed, requestId: result.requestId, price: result.price },
+    });
+  } catch (error) {
+    if (respondWithPricingFailure(error, res)) return;
     next(error);
   }
 });
