@@ -3,6 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import mongoose from 'mongoose';
 import { env } from '../src/server/config/env.js';
+import { seedApprovedPlanPricesIfMissing } from '../src/server/services/pricingService.js';
 
 const API_PORT = process.env.PORT || 5009;
 const BASE_URL = `http://127.0.0.1:${API_PORT}`;
@@ -69,6 +70,9 @@ async function runEndToEndStudentJourney() {
   if (mongoose.connection.readyState !== 1) {
     await mongoose.connect(env.MONGODB_URI);
   }
+
+  // Ensure plan price records are seeded
+  await seedApprovedPlanPricesIfMissing();
 
   const testSuffix = crypto.randomBytes(4).toString('hex');
   const studentEmail = `student_${testSuffix}@example.com`;

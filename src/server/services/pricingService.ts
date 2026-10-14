@@ -189,7 +189,16 @@ export async function getChargeablePlanPrice(planId: string): Promise<ResolvedPl
     throw new PricingError(400, 'INVALID_PLAN', 'Invalid subscription tier.');
   }
 
-  const record = await PlanPrice.findOne({ planId }).lean();
+  let record = await PlanPrice.findOne({ planId }).lean();
+
+  if (!record) {
+    try {
+      await seedApprovedPlanPricesIfMissing();
+      record = await PlanPrice.findOne({ planId }).lean();
+    } catch {
+      // Fall through to strict validation check
+    }
+  }
 
   if (!record || !isValidPriceKobo(record.amountKobo) || !isSupportedCurrency(record.currency)) {
     throw new PricingError(
@@ -225,7 +234,15 @@ export interface PublicPlan {
 }
 
 export async function listPublicPlans(): Promise<PublicPlan[]> {
-  const records = await PlanPrice.find({ planId: { $in: PAID_PLAN_IDS as unknown as string[] } }).lean();
+  let records = await PlanPrice.find({ planId: { $in: PAID_PLAN_IDS as unknown as string[] } }).lean();
+  if (records.length < PAID_PLAN_IDS.length) {
+    try {
+      await seedApprovedPlanPricesIfMissing();
+      records = await PlanPrice.find({ planId: { $in: PAID_PLAN_IDS as unknown as string[] } }).lean();
+    } catch {
+      // Continue with whatever records are available
+    }
+  }
   const byId = new Map(records.map((r) => [r.planId as PaidPlanId, r]));
 
   const validKobo = (id: PaidPlanId): number | null => {
@@ -313,9 +330,19 @@ export interface AdminPlanPrice {
 }
 
 export async function getAdminPricing(): Promise<AdminPlanPrice[]> {
-  const records = await PlanPrice.find({ planId: { $in: PAID_PLAN_IDS as unknown as string[] } })
+  let records = await PlanPrice.find({ planId: { $in: PAID_PLAN_IDS as unknown as string[] } })
     .populate('updatedBy', 'fullName email')
     .lean();
+  if (records.length < PAID_PLAN_IDS.length) {
+    try {
+      await seedApprovedPlanPricesIfMissing();
+      records = await PlanPrice.find({ planId: { $in: PAID_PLAN_IDS as unknown as string[] } })
+        .populate('updatedBy', 'fullName email')
+        .lean();
+    } catch {
+      // Continue with whatever records are available
+    }
+  }
   const byId = new Map(records.map((r) => [r.planId as PaidPlanId, r]));
 
   return PAID_PLAN_IDS.map((planId) => {

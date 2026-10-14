@@ -30,6 +30,7 @@ import { Exam } from '../src/server/models/Exam.js';
 import { Subject } from '../src/server/models/Subject.js';
 import { ExamAttempt } from '../src/server/models/ExamAttempt.js';
 import { generateToken } from '../src/server/utils/jwt.js';
+import { seedApprovedPlanPricesIfMissing } from '../src/server/services/pricingService.js';
 
 const API_PORT = process.env.PORT || 5009;
 const BASE_URL = `http://127.0.0.1:${API_PORT}`;
@@ -82,6 +83,9 @@ async function runE2EPaystackVerification() {
   if (mongoose.connection.readyState !== 1) {
     await mongoose.connect(env.MONGODB_URI);
   }
+
+  // Ensure plan price records are seeded
+  await seedApprovedPlanPricesIfMissing();
 
   let studentEmail = '';
 

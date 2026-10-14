@@ -146,21 +146,21 @@ app.use('/api/health', healthRouter);
 const dbPromise = connectDatabase()
   .then(async () => {
     try {
-      console.log('🌱 Checking and seeding production curriculum & past questions dataset...');
-      await seedInitialData();
-      metadataCache.clear();
-      console.log('✅ Production curriculum, past questions, and examination boards are verified & ready.');
-    } catch (err) {
-      console.error('❌ Error during curriculum seed verification:', err);
-    }
-
-    try {
       const created = await seedApprovedPlanPricesIfMissing();
       if (created.length > 0) {
         console.log(`💳 Initialized missing plan price records: ${created.join(', ')}`);
       }
     } catch (err) {
       console.error('❌ Could not verify plan price records (payments stay disabled until fixed):', err);
+    }
+
+    try {
+      console.log('🌱 Checking and seeding production curriculum & past questions dataset...');
+      await seedInitialData();
+      metadataCache.clear();
+      console.log('✅ Production curriculum, past questions, and examination boards are verified & ready.');
+    } catch (err) {
+      console.error('❌ Error during curriculum seed verification:', err);
     }
   })
   .catch((err) => {
