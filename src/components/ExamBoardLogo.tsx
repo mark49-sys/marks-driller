@@ -14,97 +14,18 @@ export const ExamBoardLogo: React.FC<ExamBoardLogoProps> = ({
   showName = false,
 }) => {
   const norm = (board || '').toUpperCase();
-
-  const isPostUtme = norm.includes('POST-UTME') || norm.includes('POST UTME');
-  const isGce = norm.includes('GCE');
-
-  if (isPostUtme || isGce) {
-    const label = isPostUtme ? 'POST-UTME' : 'GCE';
-    const subLabel = isPostUtme ? 'Tertiary Screening' : 'Private Series';
-    const accentColor = isPostUtme ? 'var(--steel)' : 'var(--amber)';
-
-    return (
-      <div
-        className={`exam-board-logo-container ${className}`}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '8px',
-        }}
-      >
-        <div
-          style={{
-            width: `${size}px`,
-            height: `${size}px`,
-            minWidth: `${size}px`,
-            borderRadius: '8px',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'var(--paper-soft, #f8f9fa)',
-            border: `1.5px solid ${accentColor}`,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-            padding: '2px',
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontWeight: 800,
-              fontSize: `${Math.max(9, size * 0.22)}px`,
-              color: 'var(--ink)',
-              lineHeight: 1.1,
-              textAlign: 'center',
-            }}
-          >
-            {label.split('-')[0]}
-          </span>
-          <span
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: `${Math.max(7, size * 0.16)}px`,
-              color: 'var(--ink-soft)',
-              fontWeight: 700,
-            }}
-          >
-            {isPostUtme ? 'CBT' : 'EXT'}
-          </span>
-        </div>
-        {showName && (
-          <div style={{ display: 'inline-flex', flexDirection: 'column' }}>
-            <span
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontWeight: 700,
-                fontSize: `${Math.max(12, size * 0.32)}px`,
-                color: 'var(--ink)',
-                lineHeight: 1.2,
-              }}
-            >
-              {label}
-            </span>
-            <span
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: `${Math.max(9, size * 0.22)}px`,
-                color: 'var(--ink-soft)',
-                letterSpacing: '0.02em',
-              }}
-            >
-              {subLabel}
-            </span>
-          </div>
-        )}
-      </div>
-    );
-  }
+  const [hasError, setHasError] = React.useState(false);
 
   let logoSrc = '/assets/logos/jamb.png';
   let label = 'JAMB / UTME';
 
-  if (norm.includes('WAEC') || norm.includes('WASSCE')) {
+  if (norm.includes('POST-UTME') || norm.includes('POST UTME')) {
+    logoSrc = '/assets/logos/post-utme.png';
+    label = 'POST-UTME';
+  } else if (norm.includes('GCE')) {
+    logoSrc = '/assets/logos/gce.png';
+    label = 'GCE';
+  } else if (norm.includes('WAEC') || norm.includes('WASSCE')) {
     logoSrc = '/assets/logos/waec.png';
     label = 'WAEC / SSCE';
   } else if (norm.includes('NECO')) {
@@ -117,8 +38,6 @@ export const ExamBoardLogo: React.FC<ExamBoardLogoProps> = ({
     logoSrc = '/assets/logos/jamb.png';
     label = 'JAMB / UTME';
   }
-
-  const [hasError, setHasError] = React.useState(false);
 
   return (
     <div

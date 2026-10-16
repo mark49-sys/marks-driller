@@ -45,7 +45,8 @@
     "test:landing": "tsx scripts/verify-landing-redesign.ts",
     "test:pwa-icon": "tsx scripts/verify-pwa-icon-root-cause.ts",
     "test:pricing": "tsx scripts/verify-admin-pricing-and-payments.ts",
-    "test:pwa-notif": "tsx scripts/verify-pwa-and-responsive-notifications.ts"
+    "test:pwa-notif": "tsx scripts/verify-pwa-and-responsive-notifications.ts",
+    "test:calc": "tsx scripts/verify-cbt-calculator.ts"
   },
   "keywords": [
     "mark-driller",

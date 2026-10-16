@@ -23,4 +23,5 @@ export * from './Notification.js';
 export * from './TermsAcceptance.js';
 export * from './PlanPrice.js';
 export * from './PriceChangeAudit.js';
+export * from './StudentSuccess.js';
 

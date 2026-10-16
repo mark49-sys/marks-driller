@@ -328,7 +328,7 @@ export const QuestionCatalog: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { isAuthenticated } = useAuthStore();
 
-  const selectedExamId = searchParams.get('exam') || searchParams.get('examId') || '';
+  const rawExamParam = searchParams.get('exam') || searchParams.get('examId') || '';
   const selectedSubjectId = searchParams.get('subject') || searchParams.get('subjectId') || '';
   const selectedTopicId = searchParams.get('topic') || searchParams.get('topicId') || '';
   const selectedYear = searchParams.get('year') || '';
@@ -348,6 +348,19 @@ export const QuestionCatalog: React.FC = () => {
   const { notifySuccess, notifyError, notifyInfo } = useNotificationStore();
 
   const { data: exams } = useExamsQuery();
+
+  const selectedExamId = React.useMemo(() => {
+    if (!rawExamParam) return '';
+    if (exams?.some((e) => e._id === rawExamParam)) return rawExamParam;
+    const match = exams?.find((e) => {
+      const p = rawExamParam.toLowerCase();
+      const code = e.shortCode.toLowerCase();
+      const name = e.name.toLowerCase();
+      return code === p || p.includes(code) || code.includes(p) || name.includes(p);
+    });
+    return match ? match._id : rawExamParam;
+  }, [rawExamParam, exams]);
+
   const { data: subjects } = useExamSubjectsQuery(selectedExamId || undefined);
   const { data: topics } = useSubjectTopicsQuery(selectedSubjectId || undefined);
   const { data: bookmarksData } = useMyBookmarksQuery();

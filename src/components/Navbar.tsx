@@ -49,11 +49,11 @@ export const Navbar: React.FC = () => {
                 📊 Dashboard
               </Link>
             )}
-            <button type="button" className="nav-link-btn" onClick={() => scrollToSection('offers')}>What We Offer</button>
-            <button type="button" className="nav-link-btn" onClick={() => scrollToSection('exam-boards')}>Examination</button>
+            <button type="button" className="nav-link-btn" onClick={() => scrollToSection('exam-boards')}>Examinations</button>
+            <button type="button" className="nav-link-btn" onClick={() => scrollToSection('quick-start')}>Quick Start</button>
             <button type="button" className="nav-link-btn" onClick={() => scrollToSection('how-it-works')}>How It Works</button>
-            <button type="button" className="nav-link-btn" onClick={() => scrollToSection('experience')}>Exam Simulator</button>
-            <button type="button" className="nav-link-btn" onClick={() => scrollToSection('performance')}>Analytics</button>
+            <button type="button" className="nav-link-btn" onClick={() => scrollToSection('benefits')}>Benefits</button>
+            <button type="button" className="nav-link-btn" onClick={() => scrollToSection('pricing-preview')}>Pricing</button>
             {!isAuthenticated && (
               <button
                 type="button"
@@ -194,11 +194,11 @@ export const Navbar: React.FC = () => {
                 🛡️ Admin Portal
               </Link>
             )}
-            <button type="button" className="mobile-nav-link-btn" onClick={() => handleMobileNavScroll('offers')}>What We Offer</button>
-            <button type="button" className="mobile-nav-link-btn" onClick={() => handleMobileNavScroll('exam-boards')}>Examination</button>
+            <button type="button" className="mobile-nav-link-btn" onClick={() => handleMobileNavScroll('exam-boards')}>Examinations</button>
+            <button type="button" className="mobile-nav-link-btn" onClick={() => handleMobileNavScroll('quick-start')}>Quick Start</button>
             <button type="button" className="mobile-nav-link-btn" onClick={() => handleMobileNavScroll('how-it-works')}>How It Works</button>
-            <button type="button" className="mobile-nav-link-btn" onClick={() => handleMobileNavScroll('experience')}>Exam Simulator</button>
-            <button type="button" className="mobile-nav-link-btn" onClick={() => handleMobileNavScroll('performance')}>Analytics</button>
+            <button type="button" className="mobile-nav-link-btn" onClick={() => handleMobileNavScroll('benefits')}>Benefits</button>
+            <button type="button" className="mobile-nav-link-btn" onClick={() => handleMobileNavScroll('pricing-preview')}>Pricing</button>
             {!isAuthenticated && (
               <button
                 type="button"

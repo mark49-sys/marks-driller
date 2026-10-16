@@ -310,19 +310,18 @@ async function runVerification() {
   const navbarCode = fs.readFileSync(navbarPath, 'utf8');
   const appCode = fs.readFileSync(appPath, 'utf8');
 
-  const headerHasButton = portalHeaderCode.includes('<PwaInstallButton variant="header"');
-  const headerDrawerHasButton = portalHeaderCode.includes('<PwaInstallButton variant="drawer"');
+  const portalHeaderOmitsButton = !portalHeaderCode.includes('<PwaInstallButton');
   const navbarHasButton = navbarCode.includes('<PwaInstallButton variant="header"');
   const navbarDrawerHasButton = navbarCode.includes('<PwaInstallButton variant="drawer"');
   const appHasPwaProvider = appCode.includes('<PwaProvider>');
 
-  if (headerHasButton && headerDrawerHasButton && navbarHasButton && navbarDrawerHasButton && appHasPwaProvider) {
+  if (portalHeaderOmitsButton && navbarHasButton && navbarDrawerHasButton && appHasPwaProvider) {
     pass(
-      'PWA Actions Everywhere',
-      'PwaInstallButton mounted in PortalHeader desktop + drawer, Navbar desktop + drawer, and wrapped in PwaProvider'
+      'PWA Actions Exclusively on Landing Page Navbar',
+      'PwaInstallButton mounted in Landing Navbar desktop + drawer, omitted from post-login PortalHeader, and wrapped in PwaProvider'
     );
   } else {
-    fail('PWA Actions Everywhere', 'Missing PwaInstallButton in headers, drawers, or PwaProvider in App.tsx');
+    fail('PWA Actions Exclusively on Landing Page Navbar', 'PwaInstallButton must be on Landing Navbar and omitted from post-login PortalHeader');
   }
 
   // ---------------------------------------------------------------------------

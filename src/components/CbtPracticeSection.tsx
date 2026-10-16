@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { evaluateAndFormat } from '../utils/mathEvaluator.js';
 
 export const CbtPracticeSection: React.FC = () => {
   const navigate = useNavigate();
@@ -113,10 +114,8 @@ export const CbtPracticeSection: React.FC = () => {
       setCalcDisplay('0');
     } else if (val === '=') {
       try {
-        // Safe evaluation for basic arithmetic
-        const sanitized = calcDisplay.replace(/[^0-9+\-*/.]/g, '');
-        const res = Function(`'use strict'; return (${sanitized})`)();
-        setCalcDisplay(String(res));
+        const res = evaluateAndFormat(calcDisplay);
+        setCalcDisplay(res);
       } catch {
         setCalcDisplay('Error');
       }

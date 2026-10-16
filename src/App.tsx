@@ -27,7 +27,6 @@ import { UserSettingsView } from './components/UserSettingsView.js';
 import { LiteratureNovelsView } from './components/LiteratureNovelsView.js';
 import { ContactPortal } from './components/ContactPortal.js';
 import { TermsAndConditions } from './components/TermsAndConditions.js';
-import { FloatingWhatsApp } from './components/FloatingWhatsApp.js';
 import { AuthModal } from './components/AuthModal.js';
 import { EmailVerificationModal } from './components/EmailVerificationModal.js';
 import { ForgotPasswordModal } from './components/ForgotPasswordModal.js';
@@ -59,7 +58,6 @@ export const App: React.FC = () => {
           <AuthModal />
           <EmailVerificationModal />
           <ForgotPasswordModal />
-          <FloatingWhatsApp />
           <Routes>
           {/* ======================================================== */}
           {/* 1. PUBLIC PLATFORM WEBSITE — Owned by PublicLayout        */}

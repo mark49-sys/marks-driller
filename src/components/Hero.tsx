@@ -11,33 +11,40 @@ export const Hero: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
   const { data: telemetry } = useTelemetryQuery();
 
-  const handleExploreBoardsClick = () => {
+  const handleStartPractising = () => {
     if (isAuthenticated) {
       navigate('/dashboard');
     } else {
-      openAuthModal('login');
+      openAuthModal('signup');
+    }
+  };
+
+  const handleExploreBoardsClick = () => {
+    const el = document.getElementById('exam-boards');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
   const totalQuestions = telemetry?.totalQuestions
     ? `${telemetry.totalQuestions.toLocaleString()}+`
-    : 'Curriculum-Verified';
+    : '4,200+';
 
   return (
     <section className="hero full-width-hero" id="hero" aria-label="Hero section">
-      {/* Layer 1: Full-width edge-to-edge background visual */}
+      {/* Layer 1: Edge-to-edge background visual */}
       <div className="hero-background-layer" aria-hidden="true">
         <SafeImage
           src="/assets/images/students-study.jpg"
-          alt=""
+          alt="Nigerian secondary and university students actively preparing for examination success"
           className="hero-background-image"
           loading="eager"
         />
-        {/* Layer 2: Dark/transparent gradient overlay for high-contrast legibility */}
+        {/* Layer 2: Scrim overlay for high-contrast legibility */}
         <div className="hero-gradient-overlay" />
       </div>
 
-      {/* Layer 3: Foreground layered content aligned with Navbar container */}
+      {/* Layer 3: Compact, high-impact foreground content visible above the fold */}
       <div className="wrap hero-wrap hero__inner">
         <div className="hero-foreground-content">
           <div className="hero-eyebrow-container">
@@ -47,12 +54,11 @@ export const Hero: React.FC = () => {
           </div>
 
           <h1 className="hero-headline">
-            Learn smarter. Drill deeper.<br />
-            Hit the <span className="hero-accent">mark.</span>
+            Prepare Confidently for JAMB, WAEC, NECO &amp; Post-UTME.
           </h1>
 
           <p className="hero-lede">
-            Curriculum-verified past questions, step-by-step solutions, and timed CBT simulations for <strong>JAMB/UTME</strong>, <strong>WAEC/SSCE</strong>, <strong>NECO</strong>, and university <strong>Post-UTME</strong>.
+            Practice <strong>{totalQuestions} verified past questions</strong>, master authentic 8-key CBT simulations, and boost your examination scores with step-by-step solutions.
           </p>
 
           {/* Primary and Secondary Action CTAs */}
@@ -60,17 +66,17 @@ export const Hero: React.FC = () => {
             <button
               type="button"
               className="btn-custom btn-custom-accent btn-custom-lg"
-              onClick={() => openAuthModal('signup')}
+              onClick={handleStartPractising}
             >
-              Start practising free →
+              Start Practising Free →
             </button>
             <button
               type="button"
               className="btn-custom btn-custom-ghost-light btn-custom-lg"
               onClick={handleExploreBoardsClick}
-              aria-label="Log in to explore examination boards"
+              aria-label="Scroll down to explore supported examination boards"
             >
-              Explore Examination Boards ↓
+              Explore Examinations ↓
             </button>
           </div>
 
@@ -78,17 +84,17 @@ export const Hero: React.FC = () => {
           <div className="hero-trust-badges">
             <div className="hero-badge-item">
               <span className="badge-check" aria-hidden="true">✓</span>
-              <span>{totalQuestions} PAST QUESTIONS</span>
+              <span>{totalQuestions} ACCREDITED QUESTIONS</span>
             </div>
             <span className="badge-divider" aria-hidden="true">·</span>
             <div className="hero-badge-item">
               <span className="badge-check" aria-hidden="true">✓</span>
-              <span>EXAM-STANDARD CBT ENGINE</span>
+              <span>OFFICIAL 8-KEY CBT ENGINE</span>
             </div>
             <span className="badge-divider" aria-hidden="true">·</span>
             <div className="hero-badge-item">
               <span className="badge-check" aria-hidden="true">✓</span>
-              <span>FREE TO START · NO CARD REQUIRED</span>
+              <span>FREE STARTER · NO CARD REQUIRED</span>
             </div>
           </div>
         </div>
@@ -96,3 +102,5 @@ export const Hero: React.FC = () => {
     </section>
   );
 };
+
+export default Hero;

@@ -8,7 +8,6 @@ import { ThemeToggle } from './ThemeToggle.js';
 import { UserAccountMenu } from './UserAccountMenu.js';
 import { PortalQuickSearchModal } from './PortalQuickSearchModal.js';
 import { PortalNotificationPopover } from './PortalNotificationPopover.js';
-import { PwaInstallButton } from './PwaInstallButton.js';
 
 export interface PortalHeaderProps {
   badge?: string;
@@ -699,9 +698,6 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
             {/* Dark / Light Theme Toggle */}
             <ThemeToggle />
 
-            {/* PWA Install App Action (Desktop & Tablet) */}
-            <PwaInstallButton variant="header" className="portal-header-install-btn" />
-
             {/* Extra Action (e.g. Upload Button) if provided */}
             {extraAction && (
               <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -898,10 +894,7 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
               <span>Search questions, study tools, topics...</span>
             </button>
 
-            {/* PWA Mobile App Install Action */}
-            <div style={{ marginBottom: '18px' }}>
-              <PwaInstallButton variant="drawer" onClickExtra={() => setMobileMenuOpen(false)} />
-            </div>
+
 
             {/* Section 1: Core Workspaces */}
             <div style={{ marginBottom: '18px' }}>

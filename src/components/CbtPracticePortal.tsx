@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { CbtSetupModal } from './CbtSetupModal.js';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { useAppStore } from '../store/useAppStore.js';
@@ -61,6 +61,7 @@ const FALLBACK_BOARDS: ExamBoardCard[] = [
 export const CbtPracticePortal: React.FC = () => {
   const { isAuthenticated, user } = useAuthStore();
   const { openAuthModal } = useAppStore();
+  const [searchParams] = useSearchParams();
 
   // Queries
   const { data: exams } = useExamsQuery();
@@ -79,6 +80,26 @@ export const CbtPracticePortal: React.FC = () => {
     }
     return [];
   }, [exams]);
+
+  const examParam = searchParams.get('exam') || searchParams.get('startMock') || searchParams.get('examId') || '';
+
+  useEffect(() => {
+    if (examParam && resolvedExams.length > 0 && !isSetupOpen) {
+      const p = examParam.toLowerCase();
+      const match = resolvedExams.find(
+        (e) =>
+          e._id === examParam ||
+          e.shortCode.toLowerCase().includes(p) ||
+          p.includes(e.shortCode.toLowerCase()) ||
+          e.name.toLowerCase().includes(p)
+      );
+      if (match) {
+        setSelectedExamId(match._id);
+        setSelectedSubjectId(undefined);
+        setIsSetupOpen(true);
+      }
+    }
+  }, [examParam, resolvedExams]);
 
   const isPro = Boolean(subscription?.isPro || user?.role === 'ADMIN');
 

@@ -3,15 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { BrandLogo } from './BrandLogo.js';
 import { useAppStore } from '../store/useAppStore.js';
 import { useAuthStore } from '../store/useAuthStore.js';
-import { useSupportContactQuery, buildMailtoLink } from '../api/supportContact.js';
-
 export const Footer: React.FC = () => {
   const { openAuthModal } = useAppStore();
   const { isAuthenticated } = useAuthStore();
-  const { data: support } = useSupportContactQuery();
   const navigate = useNavigate();
-
-  const supportEmail = support?.email || 'support@markdriller.com';
 
   const handleCreateAccountAction = (dest?: string) => {
     if (isAuthenticated && dest) {
@@ -30,6 +25,14 @@ export const Footer: React.FC = () => {
     const el = document.getElementById(sectionId);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      navigate('/');
+      setTimeout(() => {
+        const target = document.getElementById(sectionId);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 120);
     }
   };
 
@@ -202,6 +205,16 @@ export const Footer: React.FC = () => {
                   type="button"
                   className="foot-link"
                   style={footLinkStyle}
+                  onClick={() => scrollToSection('quick-start')}
+                >
+                  Quick Start
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="foot-link"
+                  style={footLinkStyle}
                   onClick={() => scrollToSection('how-it-works')}
                 >
                   How MarkDriller Works
@@ -212,24 +225,13 @@ export const Footer: React.FC = () => {
                   type="button"
                   className="foot-link"
                   style={footLinkStyle}
-                  onClick={() => scrollToSection('offers')}
+                  onClick={() => scrollToSection('benefits')}
                 >
-                  What We Offer
+                  Benefits
                 </button>
               </li>
               <li><Link to="/schools">Nigerian School Finder</Link></li>
               <li><Link to="/terms" style={{ color: 'rgba(248, 247, 242, 0.85)', textDecoration: 'none' }}>Student Terms &amp; Conditions</Link></li>
-              <li>
-                <button
-                  type="button"
-                  className="foot-link"
-                  style={footLinkStyle}
-                  onClick={() => scrollToSection('cta')}
-                >
-                  Start Practising Free
-                </button>
-              </li>
-              <li><a href={buildMailtoLink(supportEmail, 'MarkDriller Academic Support Desk Inquiry')}>Academic Support Desk</a></li>
             </ul>
           </div>
         </div>

@@ -1,35 +1,39 @@
 import React from 'react';
 import { Hero } from './Hero.js';
-import { WhatWeOffer } from './WhatWeOffer.js';
+import { StudentSuccessCarousel } from './StudentSuccessCarousel.js';
 import { ExamBoards } from './ExamBoards.js';
+import { QuickStartActions } from './QuickStartActions.js';
 import { HowItWorks } from './HowItWorks.js';
-import { ExamExperience } from './ExamExperience.js';
-import { StudentProgressSection } from './StudentProgressSection.js';
+import { WhatWeOffer } from './WhatWeOffer.js';
+import { SubscriptionTiersPreview } from './SubscriptionTiersPreview.js';
 import { CtaBanner } from './CtaBanner.js';
 
 export const LandingPage: React.FC = () => {
   return (
     <div className="landing-page-root">
       <main>
-        {/* Section 1: Full-Width Hero with Edge-to-Edge Image, Overlaid Nav/Search/CTAs */}
+        {/* 1. Hero: What MarkDriller does, who it serves, concise benefit statement, authentic visual */}
         <Hero />
 
-        {/* Section 2: What MarkDriller Offers — 6 Core Examination Capabilities */}
-        <WhatWeOffer />
+        {/* 2. Student Success & Scores Carousel: Verified Nigerian candidate achievements with consent */}
+        <StudentSuccessCarousel />
 
-        {/* Section 3: Statutory Nigerian Examination Boards (JAMB, WAEC, NECO, GCE, Post-UTME, NABTEB) */}
+        {/* 3. Examination Boards: Recognisable, properly sourced logos and supported examination names */}
         <ExamBoards />
 
-        {/* Section 4: Simple 5-Step Workflow from Target Selection to Performance Review */}
+        {/* 3. Quick-Start Actions: Direct access to relevant CBT practice and past-question workflows */}
+        <QuickStartActions />
+
+        {/* 4. How It Works: Three short, structured steps from target selection to score improvement */}
         <HowItWorks />
 
-        {/* Section 5: Learning & CBT Exam Experience (Interactive Hall Simulation Terminal) */}
-        <ExamExperience />
+        {/* 5. Key Benefits: Focused, genuine product capabilities without redundant walls of text */}
+        <WhatWeOffer />
 
-        {/* Section 6: Performance Intelligence & Diagnostic Growth Analytics */}
-        <StudentProgressSection />
+        {/* 6. Pricing & Access: Clear, accurate free trial details and live database-backed subscription plans */}
+        <SubscriptionTiersPreview />
 
-        {/* Section 7: High-Impact Conversion Action */}
+        {/* 7. Final Action: High-impact conversion invitation to start preparing today */}
         <CtaBanner />
       </main>
     </div>

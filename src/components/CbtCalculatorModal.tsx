@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { evaluateAndFormat, evaluateMathExpression, formatResult } from '../utils/mathEvaluator.js';
 
 interface CbtCalculatorModalProps {
   isOpen: boolean;
@@ -8,6 +9,8 @@ interface CbtCalculatorModalProps {
 export const CbtCalculatorModal: React.FC<CbtCalculatorModalProps> = ({ isOpen, onClose }) => {
   const [display, setDisplay] = useState('0');
   const [expression, setExpression] = useState('');
+  const [pendingFunc, setPendingFunc] = useState<string | null>(null);
+  const [justEvaluated, setJustEvaluated] = useState(false);
   const [memory, setMemory] = useState<number | null>(null);
   const [angleMode, setAngleMode] = useState<'DEG' | 'RAD'>('DEG');
   const [isMinimized, setIsMinimized] = useState(false);
@@ -59,62 +62,6 @@ export const CbtCalculatorModal: React.FC<CbtCalculatorModalProps> = ({ isOpen, 
     };
   };
 
-  // Safe Calculator Logic
-  const handleDigit = (digit: string) => {
-    setDisplay((prev) => {
-      if (prev === '0' || prev === 'Error') return digit;
-      return prev + digit;
-    });
-  };
-
-  const handleDecimal = () => {
-    if (display === 'Error') {
-      setDisplay('0.');
-      return;
-    }
-    // Check if the current number block already has a decimal
-    const parts = display.split(/[\+\-\*\/]/);
-    const currentNum = parts[parts.length - 1];
-    if (!currentNum.includes('.')) {
-      setDisplay((prev) => prev + '.');
-    }
-  };
-
-  const handleOperator = (op: string) => {
-    if (display === 'Error') return;
-    const lastChar = display.slice(-1);
-    if (['+', '-', '*', '/'].includes(lastChar)) {
-      setDisplay(display.slice(0, -1) + op);
-    } else {
-      setDisplay(display + op);
-    }
-  };
-
-  const handleClear = () => {
-    setDisplay('0');
-    setExpression('');
-  };
-
-  const handleBackspace = () => {
-    if (display === 'Error' || display.length <= 1) {
-      setDisplay('0');
-    } else {
-      setDisplay(display.slice(0, -1));
-    }
-  };
-
-  const handleToggleSign = () => {
-    if (display === '0' || display === 'Error') return;
-    try {
-      const val = parseFloat(display);
-      if (!isNaN(val)) {
-        setDisplay((-val).toString());
-      }
-    } catch {
-      // ignore
-    }
-  };
-
   // Factorial helper
   const factorial = (n: number): number => {
     if (n < 0) return NaN;
@@ -126,109 +73,326 @@ export const CbtCalculatorModal: React.FC<CbtCalculatorModalProps> = ({ isOpen, 
     return res;
   };
 
-  const handleScientific = (func: string) => {
-    try {
-      const currentVal = parseFloat(display);
-      if (isNaN(currentVal)) return;
-
-      let result = 0;
+  // Core scientific function computation
+  const computeScientific = useCallback(
+    (func: string, val: number): number => {
       switch (func) {
         case 'sin': {
-          const rad = angleMode === 'DEG' ? (currentVal * Math.PI) / 180 : currentVal;
-          result = Math.sin(rad);
-          break;
+          const rad = angleMode === 'DEG' ? (val * Math.PI) / 180 : val;
+          return Math.sin(rad);
         }
         case 'cos': {
-          const rad = angleMode === 'DEG' ? (currentVal * Math.PI) / 180 : currentVal;
-          result = Math.cos(rad);
-          break;
+          const rad = angleMode === 'DEG' ? (val * Math.PI) / 180 : val;
+          return Math.cos(rad);
         }
         case 'tan': {
-          const rad = angleMode === 'DEG' ? (currentVal * Math.PI) / 180 : currentVal;
-          result = Math.tan(rad);
-          break;
+          const rad = angleMode === 'DEG' ? (val * Math.PI) / 180 : val;
+          return Math.tan(rad);
         }
         case 'sqrt':
-          if (currentVal < 0) {
-            setDisplay('Error');
-            return;
-          }
-          result = Math.sqrt(currentVal);
-          break;
+          if (val < 0) throw new Error('Square root of negative number is undefined');
+          return Math.sqrt(val);
         case 'sqr':
-          result = Math.pow(currentVal, 2);
-          break;
+          return Math.pow(val, 2);
         case 'reciprocal':
-          if (currentVal === 0) {
-            setDisplay('Error');
-            return;
-          }
-          result = 1 / currentVal;
-          break;
+          if (val === 0) throw new Error('Division by zero is undefined');
+          return 1 / val;
         case 'ln':
-          if (currentVal <= 0) {
-            setDisplay('Error');
-            return;
-          }
-          result = Math.log(currentVal);
-          break;
+          if (val <= 0) throw new Error('Natural logarithm of non-positive number is undefined');
+          return Math.log(val);
         case 'log':
-          if (currentVal <= 0) {
-            setDisplay('Error');
-            return;
-          }
-          result = Math.log10(currentVal);
-          break;
+          if (val <= 0) throw new Error('Base-10 logarithm of non-positive number is undefined');
+          return Math.log10(val);
         case 'fact':
-          result = factorial(Math.floor(currentVal));
-          break;
-        case 'pi':
-          result = Math.PI;
-          break;
-        case 'e':
-          result = Math.E;
-          break;
+          if (val < 0) throw new Error('Factorial of negative number is undefined');
+          return factorial(Math.floor(val));
         default:
+          throw new Error('Unknown function');
+      }
+    },
+    [angleMode]
+  );
+
+  // Safe Calculator Logic
+  const handleDigit = useCallback((digit: string) => {
+    setDisplay((prev) => {
+      if (prev === '0' || prev === 'Error') return digit;
+      return prev + digit;
+    });
+
+    setExpression((prevExp) => {
+      if (pendingFunc) {
+        const nextVal = display === '0' || display === 'Error' ? digit : display + digit;
+        return `${pendingFunc}(${nextVal})`;
+      }
+      if (justEvaluated) {
+        return '';
+      }
+      return prevExp;
+    });
+
+    if (justEvaluated && !pendingFunc) {
+      setDisplay(digit);
+    }
+
+    setJustEvaluated(false);
+  }, [display, pendingFunc, justEvaluated]);
+
+  const handleDecimal = useCallback(() => {
+    if (display === 'Error' || (justEvaluated && !pendingFunc)) {
+      setDisplay('0.');
+      if (pendingFunc) {
+        setExpression(`${pendingFunc}(0.`);
+      } else {
+        setExpression('');
+      }
+      setJustEvaluated(false);
+      return;
+    }
+
+    const parts = display.split(/[\+\-\*\/]/);
+    const currentNum = parts[parts.length - 1];
+    if (!currentNum.includes('.')) {
+      const nextDisplay = display + '.';
+      setDisplay(nextDisplay);
+      if (pendingFunc) {
+        setExpression(`${pendingFunc}(${nextDisplay})`);
+      }
+    }
+  }, [display, justEvaluated, pendingFunc]);
+
+  const handleOperator = useCallback((op: string) => {
+    if (display === 'Error') return;
+
+    // If there is a pending prefix function (e.g. log(100)), resolve it before appending operator
+    if (pendingFunc) {
+      try {
+        let currentVal: number;
+        try {
+          currentVal = evaluateMathExpression(display);
+        } catch {
+          currentVal = parseFloat(display);
+        }
+
+        if (isNaN(currentVal)) {
+          setDisplay('Error');
+          setPendingFunc(null);
           return;
+        }
+
+        const res = computeScientific(pendingFunc, currentVal);
+        const formatted = formatResult(res);
+        setPendingFunc(null);
+        setDisplay(formatted + op);
+        setExpression(`${pendingFunc}(${display}) ${op}`);
+        setJustEvaluated(false);
+        return;
+      } catch {
+        setDisplay('Error');
+        setPendingFunc(null);
+        return;
+      }
+    }
+
+    setJustEvaluated(false);
+    setDisplay((prev) => {
+      const lastChar = prev.slice(-1);
+      if (['+', '-', '*', '/'].includes(lastChar)) {
+        return prev.slice(0, -1) + op;
+      }
+      return prev + op;
+    });
+  }, [display, pendingFunc, computeScientific]);
+
+  const handleClear = useCallback(() => {
+    setDisplay('0');
+    setExpression('');
+    setPendingFunc(null);
+    setJustEvaluated(false);
+  }, []);
+
+  const handleBackspace = useCallback(() => {
+    if (display === 'Error' || display.length <= 1) {
+      setDisplay('0');
+      if (pendingFunc) {
+        setExpression(`${pendingFunc}(`);
+      }
+    } else {
+      const nextDisplay = display.slice(0, -1);
+      setDisplay(nextDisplay);
+      if (pendingFunc) {
+        setExpression(`${pendingFunc}(${nextDisplay})`);
+      }
+    }
+  }, [display, pendingFunc]);
+
+  const handleToggleSign = useCallback(() => {
+    if (display === '0' || display === 'Error') return;
+    try {
+      const val = parseFloat(display);
+      if (!isNaN(val)) {
+        const next = (-val).toString();
+        setDisplay(next);
+        if (pendingFunc) {
+          setExpression(`${pendingFunc}(${next})`);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [display, pendingFunc]);
+
+  // Scientific functions supporting both PREFIX (e.g., log -> 100 -> =) and POSTFIX (100 -> log)
+  const handleScientific = useCallback((func: string) => {
+    // 1. Constants (pi and e)
+    if (func === 'pi') {
+      const formatted = formatResult(Math.PI);
+      setDisplay(formatted);
+      setExpression('π =');
+      setPendingFunc(null);
+      setJustEvaluated(true);
+      return;
+    }
+    if (func === 'e') {
+      const formatted = formatResult(Math.E);
+      setDisplay(formatted);
+      setExpression('e =');
+      setPendingFunc(null);
+      setJustEvaluated(true);
+      return;
+    }
+
+    // 2. Prefix Mode Trigger:
+    // If the display is '0', or 'Error', or we just finished another evaluation/clear,
+    // the user wants to enter prefix notation: e.g. click 'log' or 'ln', then enter operand, then '='.
+    // Instead of throwing an instant Error on '0', initiate pending function mode smoothly!
+    if (display === '0' || display === 'Error' || display === '' || justEvaluated) {
+      setPendingFunc(func);
+      setExpression(`${func}(`);
+      setDisplay('0');
+      setJustEvaluated(false);
+      return;
+    }
+
+    // 3. Postfix Mode:
+    // User already typed an operand or expression in display (e.g. '100' or '20 + 80').
+    // Evaluate display first to obtain the true argument.
+    try {
+      let currentVal: number;
+      try {
+        currentVal = evaluateMathExpression(display);
+      } catch {
+        currentVal = parseFloat(display);
       }
 
-      const formatted = Number.isInteger(result)
-        ? result.toString()
-        : parseFloat(result.toFixed(8)).toString();
-      setExpression(`${func}(${currentVal}) =`);
+      if (isNaN(currentVal)) {
+        setDisplay('Error');
+        setExpression(`${func}(${display}) = Error`);
+        setPendingFunc(null);
+        setJustEvaluated(true);
+        return;
+      }
+
+      const result = computeScientific(func, currentVal);
+      const formatted = formatResult(result);
+      setExpression(`${func}(${display}) =`);
       setDisplay(formatted);
+      setPendingFunc(null);
+      setJustEvaluated(true);
     } catch {
+      setExpression(`${func}(${display}) = Error`);
       setDisplay('Error');
+      setPendingFunc(null);
+      setJustEvaluated(true);
     }
-  };
+  }, [display, justEvaluated, computeScientific]);
 
-  // Safe arithmetic evaluator (without eval)
-  const evaluateExpression = (expr: string): number => {
-    const sanitized = expr.replace(/×/g, '*').replace(/÷/g, '/');
-    // Only allow digits, decimals, operators, parentheses, spaces
-    if (!/^[0-9+\-*/.() ]+$/.test(sanitized)) {
-      throw new Error('Invalid characters');
-    }
-    // eslint-disable-next-line no-new-func
-    const fn = new Function(`return (${sanitized})`);
-    const val = fn();
-    if (typeof val !== 'number' || !isFinite(val)) {
-      throw new Error('Arithmetic overflow or division by zero');
-    }
-    return val;
-  };
-
-  const handleEquals = () => {
+  // Deterministic arithmetic evaluation via safe parser (zero eval, CSP compliant)
+  const handleEquals = useCallback(() => {
     if (display === 'Error') return;
+
+    // 1. If we have a pending scientific prefix function (e.g. log(100) or ln(10))
+    if (pendingFunc) {
+      try {
+        let currentVal: number;
+        try {
+          currentVal = evaluateMathExpression(display);
+        } catch {
+          currentVal = parseFloat(display);
+        }
+
+        if (isNaN(currentVal)) {
+          setDisplay('Error');
+          setPendingFunc(null);
+          setJustEvaluated(true);
+          return;
+        }
+
+        const result = computeScientific(pendingFunc, currentVal);
+        const formatted = formatResult(result);
+        setExpression(`${pendingFunc}(${display}) =`);
+        setDisplay(formatted);
+        setPendingFunc(null);
+        setJustEvaluated(true);
+      } catch {
+        setExpression(`${pendingFunc}(${display}) = Error`);
+        setDisplay('Error');
+        setPendingFunc(null);
+        setJustEvaluated(true);
+      }
+      return;
+    }
+
+    // 2. Standard arithmetic evaluation via evaluateAndFormat
     try {
-      const res = evaluateExpression(display);
-      const formatted = Number.isInteger(res) ? res.toString() : parseFloat(res.toFixed(8)).toString();
+      const formatted = evaluateAndFormat(display, 8);
       setExpression(`${display} =`);
       setDisplay(formatted);
+      setJustEvaluated(true);
     } catch {
       setDisplay('Error');
+      setJustEvaluated(true);
     }
-  };
+  }, [display, pendingFunc, computeScientific]);
+
+  // Keyboard navigation & numpad shortcuts while calculator is active
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept if user is typing in a form input or textarea
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        (e.target as HTMLElement)?.isContentEditable
+      ) {
+        return;
+      }
+
+      if (e.key >= '0' && e.key <= '9') {
+        e.preventDefault();
+        handleDigit(e.key);
+      } else if (e.key === '.') {
+        e.preventDefault();
+        handleDecimal();
+      } else if (['+', '-', '*', '/'].includes(e.key)) {
+        e.preventDefault();
+        handleOperator(e.key);
+      } else if (e.key === 'Enter' || e.key === '=') {
+        e.preventDefault();
+        handleEquals();
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        handleBackspace();
+      } else if (e.key === 'Escape' || e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        handleClear();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, handleDigit, handleDecimal, handleOperator, handleEquals, handleBackspace, handleClear]);
 
   // Memory functions
   const handleMemory = (op: 'MC' | 'MR' | 'M+' | 'M-') => {
@@ -402,35 +566,47 @@ export const CbtCalculatorModal: React.FC<CbtCalculatorModalProps> = ({ isOpen, 
           {/* Scientific Keypad Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px', marginBottom: '6px' }}>
             {[
-              { label: 'sin', action: () => handleScientific('sin') },
-              { label: 'cos', action: () => handleScientific('cos') },
-              { label: 'tan', action: () => handleScientific('tan') },
-              { label: 'ln', action: () => handleScientific('ln') },
-              { label: 'log', action: () => handleScientific('log') },
-              { label: '√x', action: () => handleScientific('sqrt') },
-              { label: 'x²', action: () => handleScientific('sqr') },
-              { label: '1/x', action: () => handleScientific('reciprocal') },
-              { label: 'π', action: () => handleScientific('pi') },
-              { label: 'n!', action: () => handleScientific('fact') },
-            ].map((btn) => (
-              <button
-                key={btn.label}
-                type="button"
-                onClick={btn.action}
-                style={{
-                  padding: '6px 2px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: '#93a1a1',
-                  fontSize: '11px',
-                  borderRadius: '3px',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                }}
-              >
-                {btn.label}
-              </button>
-            ))}
+              { func: 'sin', label: 'sin', title: 'Sine (sin)', testId: 'cbt-calc-btn-sin' },
+              { func: 'cos', label: 'cos', title: 'Cosine (cos)', testId: 'cbt-calc-btn-cos' },
+              { func: 'tan', label: 'tan', title: 'Tangent (tan)', testId: 'cbt-calc-btn-tan' },
+              { func: 'ln', label: 'ln', title: 'Natural Logarithm (ln)', isLn: true, testId: 'cbt-calc-btn-ln' },
+              { func: 'log', label: 'log', title: 'Base-10 Common Logarithm (log)', testId: 'cbt-calc-btn-log' },
+              { func: 'sqrt', label: '√x', title: 'Square Root (√x)', testId: 'cbt-calc-btn-sqrt' },
+              { func: 'sqr', label: 'x²', title: 'Square (x²)', testId: 'cbt-calc-btn-sqr' },
+              { func: 'reciprocal', label: '1/x', title: 'Reciprocal (1/x)', testId: 'cbt-calc-btn-reciprocal' },
+              { func: 'pi', label: 'π', title: 'Pi Constant (π)', testId: 'cbt-calc-btn-pi' },
+              { func: 'fact', label: 'n!', title: 'Factorial (n!)', testId: 'cbt-calc-btn-fact' },
+            ].map((btn) => {
+              const isPending = pendingFunc === btn.func;
+              return (
+                <button
+                  key={btn.func}
+                  id={btn.testId}
+                  data-testid={btn.testId}
+                  type="button"
+                  onClick={() => handleScientific(btn.func)}
+                  title={btn.title}
+                  aria-label={btn.title}
+                  style={{
+                    padding: '6px 2px',
+                    background: isPending ? 'rgba(194, 65, 12, 0.28)' : 'rgba(255,255,255,0.05)',
+                    border: isPending ? '1px solid var(--rust)' : '1px solid rgba(255,255,255,0.08)',
+                    color: isPending ? 'var(--rust)' : '#c9d1d9',
+                    fontSize: btn.isLn ? '12px' : '11px',
+                    fontFamily: btn.isLn ? 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif' : 'inherit',
+                    fontStyle: btn.isLn ? 'italic' : 'normal',
+                    letterSpacing: btn.isLn ? '0.5px' : 'normal',
+                    fontWeight: isPending || btn.isLn ? 700 : 500,
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {btn.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Standard Keypad Grid */}

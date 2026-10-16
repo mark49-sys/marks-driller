@@ -1,7 +1,7 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAppStore } from '../store/useAppStore';
-import { useAuthStore } from '../store/useAuthStore';
+import { useNavigate } from 'react-router-dom';
+import { useAppStore } from '../store/useAppStore.js';
+import { useAuthStore } from '../store/useAuthStore.js';
 import { useSubscriptionPlansQuery, formatKoboAsNaira } from '../api/subscriptions.js';
 
 export const SubscriptionTiersPreview: React.FC = () => {
@@ -9,21 +9,30 @@ export const SubscriptionTiersPreview: React.FC = () => {
   const { openAuthModal } = useAppStore();
   const { isAuthenticated } = useAuthStore();
   const { data: livePlans } = useSubscriptionPlansQuery();
+
   const monthlyPlan = livePlans?.find((p) => p.id === 'PRO_MONTHLY');
   const bimonthlyPlan = livePlans?.find((p) => p.id === 'PRO_BIMONTHLY');
 
+  const handleFreeAction = () => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    } else {
+      openAuthModal('signup');
+    }
+  };
+
   const handleProAction = () => {
     if (!isAuthenticated) {
-      openAuthModal('login');
+      openAuthModal('signup');
     } else {
-      navigate('/pricing');
+      navigate('/portal/pricing');
     }
   };
 
   return (
     <section className="section" id="pricing-preview" aria-label="Transparent Subscription Plans">
       <div className="wrap">
-        <div className="section-head" style={{ marginBottom: '32px' }}>
+        <div className="section-head" style={{ marginBottom: '28px' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
             <span className="eyebrow">Fair Nigerian Pricing</span>
             <span
@@ -40,9 +49,9 @@ export const SubscriptionTiersPreview: React.FC = () => {
               Zero Hidden Charges
             </span>
           </div>
-          <h2>Invest in Exam Success for Less Than the Cost of One Textbook</h2>
-          <p style={{ maxWidth: '680px', margin: '0 auto', color: 'var(--ink-soft)', fontSize: '15px' }}>
-            Start completely free or unlock the full 150,000+ past questions database, offline PC/Mobile software, and unlimited timed CBT mock exams.
+          <h2>Clear, Student-Friendly Access</h2>
+          <p style={{ maxWidth: '640px', margin: '0 auto', color: 'var(--ink-soft)', fontSize: '15px' }}>
+            Start completely free or upgrade to the full question bank with unlimited CBT mocks and analytics.
           </p>
         </div>
 
@@ -50,10 +59,10 @@ export const SubscriptionTiersPreview: React.FC = () => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '24px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '20px',
             alignItems: 'stretch',
-            marginBottom: '32px',
+            marginBottom: '28px',
           }}
         >
           {/* Tier 1: Free Starter */}
@@ -63,7 +72,7 @@ export const SubscriptionTiersPreview: React.FC = () => {
               background: 'var(--white)',
               border: '1.5px solid var(--paper-line)',
               borderRadius: '12px',
-              padding: '28px',
+              padding: '24px',
               display: 'flex',
               flexDirection: 'column',
               boxShadow: 'var(--card-shadow)',
@@ -77,46 +86,46 @@ export const SubscriptionTiersPreview: React.FC = () => {
                 color: 'var(--ink-soft)',
                 textTransform: 'uppercase',
                 display: 'block',
-                marginBottom: '8px',
+                marginBottom: '6px',
               }}
             >
               STARTER EXPLORER
             </span>
-            <h3 style={{ fontSize: '20px', margin: '0 0 12px 0', color: 'var(--ink)' }}>
-              Free Practice
+            <h3 style={{ fontSize: '19px', margin: '0 0 10px 0', color: 'var(--ink)' }}>
+              Free Starter
             </h3>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
-              <span style={{ fontSize: '36px', fontWeight: 800, fontFamily: "var(--font-sans)", color: 'var(--ink)' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '14px' }}>
+              <span style={{ fontSize: '32px', fontWeight: 800, fontFamily: "var(--font-sans)", color: 'var(--ink)' }}>
                 ₦0
               </span>
               <span style={{ fontSize: '13px', color: 'var(--ink-soft)', fontFamily: "var(--font-sans)" }}>
-                / forever
+                / free to start
               </span>
             </div>
 
-            <p style={{ fontSize: '13px', color: 'var(--ink-soft)', margin: '0 0 20px 0', lineHeight: 1.5 }}>
-              Ideal for new students sampling past questions, syllabus outlines, and CBT test format.
+            <p style={{ fontSize: '13px', color: 'var(--ink-soft)', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+              Perfect for every new student testing practice questions and exploring the CBT engine.
             </p>
 
             <ul
               style={{
                 paddingLeft: '18px',
-                margin: '0 0 24px 0',
+                margin: '0 0 22px 0',
                 fontSize: '13px',
                 color: 'var(--ink)',
-                lineHeight: 1.7,
+                lineHeight: 1.65,
                 flex: 1,
               }}
             >
-              <li>Access to 500+ verified sample past questions</li>
-              <li>3 Free CBT examination trials (2024 questions)</li>
+              <li>200 free trial questions with solutions</li>
+              <li>3 full CBT examination sessions</li>
               <li>Official JAMB &amp; WAEC syllabus outlines</li>
-              <li>School &amp; course eligibility checker</li>
+              <li>Instant auto-marking and score review</li>
             </ul>
 
             <button
               type="button"
-              onClick={() => openAuthModal('login')}
+              onClick={handleFreeAction}
               className="btn-custom btn-custom-ghost"
               style={{ width: '100%', fontSize: '13px', padding: '10px', textAlign: 'center', justifyContent: 'center' }}
             >
@@ -124,17 +133,17 @@ export const SubscriptionTiersPreview: React.FC = () => {
             </button>
           </div>
 
-          {/* Tier 2: Pro Annual Pass (Featured) */}
+          {/* Tier 2: Pro Candidate Pass */}
           <div
             className="mk-card mk-card-featured"
             style={{
               background: 'var(--white)',
               border: '2px solid var(--rust)',
               borderRadius: '12px',
-              padding: '28px',
+              padding: '24px',
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: '0 8px 28px rgba(168, 86, 47, 0.15)',
+              boxShadow: '0 8px 24px rgba(168, 86, 47, 0.15)',
               position: 'relative',
               overflow: 'visible',
             }}
@@ -143,7 +152,7 @@ export const SubscriptionTiersPreview: React.FC = () => {
               style={{
                 position: 'absolute',
                 top: '-12px',
-                right: '20px',
+                right: '18px',
                 backgroundColor: 'var(--rust)',
                 color: '#ffffff',
                 fontSize: '10.5px',
@@ -154,7 +163,7 @@ export const SubscriptionTiersPreview: React.FC = () => {
                 letterSpacing: '0.04em',
               }}
             >
-              MOST POPULAR FOR CANDIDATES
+              RECOMMENDED
             </div>
 
             <span
@@ -165,43 +174,42 @@ export const SubscriptionTiersPreview: React.FC = () => {
                 color: 'var(--rust)',
                 textTransform: 'uppercase',
                 display: 'block',
-                marginBottom: '8px',
+                marginBottom: '6px',
               }}
             >
-              INDIVIDUAL CANDIDATE PASS
+              INDIVIDUAL SCHOLAR PASS
             </span>
-            <h3 style={{ fontSize: '20px', margin: '0 0 12px 0', color: 'var(--ink)' }}>
+            <h3 style={{ fontSize: '19px', margin: '0 0 10px 0', color: 'var(--ink)' }}>
               Pro Candidate Pass
             </h3>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
-              <span style={{ fontSize: '36px', fontWeight: 800, fontFamily: "var(--font-sans)", color: 'var(--rust)' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '14px' }}>
+              <span style={{ fontSize: '32px', fontWeight: 800, fontFamily: "var(--font-sans)", color: 'var(--rust)' }}>
                 {formatKoboAsNaira(monthlyPlan?.priceKobo)}
               </span>
               <span style={{ fontSize: '13px', color: 'var(--ink-soft)', fontFamily: "var(--font-sans)" }}>
-                / month{bimonthlyPlan?.priceKobo != null ? ` (From ${formatKoboAsNaira(bimonthlyPlan.priceKobo)} for 2 mos)` : ''}
+                / month{bimonthlyPlan?.priceKobo != null ? ` (or ${formatKoboAsNaira(bimonthlyPlan.priceKobo)} for 2 mos)` : ''}
               </span>
             </div>
 
-            <p style={{ fontSize: '13px', color: 'var(--ink-soft)', margin: '0 0 20px 0', lineHeight: 1.5 }}>
-              Everything an aspiring student needs to achieve 300+ in JAMB and straight A's in WAEC.
+            <p style={{ fontSize: '13px', color: 'var(--ink-soft)', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+              Everything an aspiring candidate needs for maximum score readiness in JAMB, WAEC, and NECO.
             </p>
 
             <ul
               style={{
                 paddingLeft: '18px',
-                margin: '0 0 24px 0',
+                margin: '0 0 22px 0',
                 fontSize: '13px',
                 color: 'var(--ink)',
-                lineHeight: 1.7,
+                lineHeight: 1.65,
                 flex: 1,
               }}
             >
-              <li><strong>150,000+ Past Questions (1978–2026)</strong></li>
-              <li><strong>Full-Fidelity 8-Key CBT Simulator</strong></li>
+              <li><strong>Unlimited access to 4,200+ verified questions</strong></li>
+              <li><strong>Unlimited full-length timed CBT mocks</strong></li>
               <li><strong>Step-by-step worked solutions &amp; examiner notes</strong></li>
-              <li><strong>100% Offline Windows PC App + Android APK</strong></li>
-              <li><strong>The Life Changer novel summary &amp; likely questions</strong></li>
-              <li><strong>Weakness analytics &amp; score trajectory</strong></li>
+              <li><strong>Diagnostic score breakdown &amp; speed analytics</strong></li>
+              <li><strong>Bookmark difficult questions for revision</strong></li>
             </ul>
 
             <button
@@ -214,14 +222,14 @@ export const SubscriptionTiersPreview: React.FC = () => {
             </button>
           </div>
 
-          {/* Tier 3: School & Centre LAN Server */}
+          {/* Tier 3: School & Centre License */}
           <div
             className="mk-card mk-card-hover"
             style={{
               background: 'var(--white)',
               border: '1.5px solid var(--paper-line)',
               borderRadius: '12px',
-              padding: '28px',
+              padding: '24px',
               display: 'flex',
               flexDirection: 'column',
               boxShadow: 'var(--card-shadow)',
@@ -235,50 +243,51 @@ export const SubscriptionTiersPreview: React.FC = () => {
                 color: 'var(--steel)',
                 textTransform: 'uppercase',
                 display: 'block',
-                marginBottom: '8px',
+                marginBottom: '6px',
               }}
             >
               INSTITUTIONS &amp; CBT LABS
             </span>
-            <h3 style={{ fontSize: '20px', margin: '0 0 12px 0', color: 'var(--ink)' }}>
-              School LAN Server
+            <h3 style={{ fontSize: '19px', margin: '0 0 10px 0', color: 'var(--ink)' }}>
+              School &amp; Center License
             </h3>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
-              <span style={{ fontSize: '28px', fontWeight: 800, fontFamily: "var(--font-sans)", color: 'var(--ink)' }}>
-                Custom / Bulk
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '14px' }}>
+              <span style={{ fontSize: '26px', fontWeight: 800, fontFamily: "var(--font-sans)", color: 'var(--ink)' }}>
+                Institutional
               </span>
               <span style={{ fontSize: '13px', color: 'var(--ink-soft)', fontFamily: "var(--font-sans)" }}>
                 tiered volume
               </span>
             </div>
 
-            <p style={{ fontSize: '13px', color: 'var(--ink-soft)', margin: '0 0 20px 0', lineHeight: 1.5 }}>
-              For secondary schools, tutorial colleges, and commercial CBT centres conducting bulk mocks.
+            <p style={{ fontSize: '13px', color: 'var(--ink-soft)', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+              For schools, tutorial colleges, and commercial CBT centers conducting large-scale student testing.
             </p>
 
             <ul
               style={{
                 paddingLeft: '18px',
-                margin: '0 0 24px 0',
+                margin: '0 0 22px 0',
                 fontSize: '13px',
                 color: 'var(--ink)',
-                lineHeight: 1.7,
+                lineHeight: 1.65,
                 flex: 1,
               }}
             >
-              <li>Deploy across 50 to 500+ student seats</li>
-              <li>Official JAMB, WAEC & NECO curriculum coverage</li>
-              <li>Administrative dashboard &amp; school batch reporting</li>
-              <li>Custom mock exam creator with institutional analytics</li>
+              <li>Deploy across 50 to 500+ student computers</li>
+              <li>JAMB, WAEC, and NECO accredited curricula</li>
+              <li>Batch student score analytics &amp; performance reports</li>
+              <li>Priority technical onboarding &amp; dedicated support</li>
             </ul>
 
-            <Link
-              to="/contact"
+            <button
+              type="button"
+              onClick={() => openAuthModal('signup')}
               className="btn-custom btn-custom-ghost"
               style={{ width: '100%', fontSize: '13px', padding: '10px', textAlign: 'center', justifyContent: 'center' }}
             >
               Contact Institutional Desk ➔
-            </Link>
+            </button>
           </div>
         </div>
       </div>
@@ -286,3 +295,4 @@ export const SubscriptionTiersPreview: React.FC = () => {
   );
 };
 
+export default SubscriptionTiersPreview;

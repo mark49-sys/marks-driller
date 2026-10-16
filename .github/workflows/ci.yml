@@ -80,5 +80,11 @@ jobs:
           NODE_ENV: test
           MONGODB_URI: mongodb://localhost:27017/markdriller_test
 
+      - name: Landing Page Redesign & Narrative Audit
+        run: npm run test:landing
+
+      - name: Production CBT Calculator Verification & CSP Audit
+        run: npm run test:calc
+
       - name: Supply Chain Dependency Audit
         run: npm audit --audit-level=critical

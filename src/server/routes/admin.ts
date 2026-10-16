@@ -19,6 +19,7 @@ import { Institution } from '../models/Institution.js';
 import { Course } from '../models/Course.js';
 import { BlogPost } from '../models/BlogPost.js';
 import { Testimonial } from '../models/Testimonial.js';
+import { StudentSuccess } from '../models/StudentSuccess.js';
 import { VideoLesson } from '../models/VideoLesson.js';
 import { SupportTicket } from '../models/SupportTicket.js';
 import { Notification } from '../models/Notification.js';
@@ -2074,6 +2075,241 @@ router.delete('/notifications/:id', async (req: AuthenticatedRequest, res: Respo
       success: true,
       message: 'Notification archived successfully.',
       data: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 30. STUDENT SUCCESS & VERIFIED ACHIEVEMENT MANAGEMENT
+// ---------------------------------------------------------------------------
+
+// GET /api/admin/student-success — List all student success records with audit metadata
+router.get('/student-success', async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { status, consent, published } = req.query;
+    const filter: Record<string, any> = {};
+
+    if (status && typeof status === 'string') {
+      filter.verificationStatus = status;
+    }
+    if (consent && typeof consent === 'string') {
+      filter.consentStatus = consent;
+    }
+    if (published !== undefined) {
+      filter.isPublished = published === 'true';
+    }
+
+    const records = await StudentSuccess.find(filter)
+      .sort({ displayOrder: 1, createdAt: -1 })
+      .lean();
+
+    res.status(200).json({ success: true, data: records });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/admin/student-success — Create a new student success record
+router.post('/student-success', async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const {
+      studentDisplayName,
+      photoUrl,
+      examType,
+      examYear,
+      score,
+      scoreBreakdown,
+      caption,
+      verificationStatus = 'pending',
+      verificationEvidence,
+      consentStatus = 'pending',
+      consentRecordRef,
+      guardianConsent = false,
+      isPublished = false,
+      displayOrder = 0,
+    } = req.body;
+
+    if (!studentDisplayName || !photoUrl || !examType || !score) {
+      res.status(400).json({
+        success: false,
+        error: { message: 'studentDisplayName, photoUrl, examType, and score are required fields.' },
+      });
+      return;
+    }
+
+    // Safety constraint: Cannot publish unless verified and consent obtained
+    const canPublish = isPublished && verificationStatus === 'verified' && consentStatus === 'obtained';
+
+    const newRecord = await StudentSuccess.create({
+      studentDisplayName: String(studentDisplayName).trim(),
+      photoUrl: String(photoUrl).trim(),
+      examType: String(examType).trim(),
+      examYear: Number(examYear) || 2024,
+      score: String(score).trim(),
+      scoreBreakdown: scoreBreakdown ? String(scoreBreakdown).trim() : '',
+      caption: caption ? String(caption).trim() : '',
+      verificationStatus,
+      verifiedBy: req.user?.email || 'admin',
+      verificationDate: verificationStatus === 'verified' ? new Date() : null,
+      verificationEvidence: verificationEvidence ? String(verificationEvidence).trim() : '',
+      consentStatus,
+      consentRecordRef: consentRecordRef ? String(consentRecordRef).trim() : '',
+      guardianConsent: Boolean(guardianConsent),
+      isPublished: canPublish,
+      displayOrder: Number(displayOrder) || 0,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Student success record created successfully.',
+      data: newRecord,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PUT /api/admin/student-success/:id — Update verification status, consent, or publication
+router.put('/student-success/:id', async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const rawId = req.params.id;
+    const recordId = Array.isArray(rawId) ? rawId[0] : rawId;
+    if (!mongoose.Types.ObjectId.isValid(recordId)) {
+      res.status(400).json({ success: false, error: { message: 'Invalid record ID' } });
+      return;
+    }
+
+    const existing = await StudentSuccess.findById(recordId);
+    if (!existing) {
+      res.status(404).json({ success: false, error: { message: 'Record not found' } });
+      return;
+    }
+
+    const {
+      studentDisplayName,
+      photoUrl,
+      examType,
+      examYear,
+      score,
+      scoreBreakdown,
+      caption,
+      verificationStatus,
+      verificationEvidence,
+      consentStatus,
+      consentRecordRef,
+      guardianConsent,
+      isPublished,
+      displayOrder,
+    } = req.body;
+
+    if (studentDisplayName !== undefined) existing.studentDisplayName = String(studentDisplayName).trim();
+    if (photoUrl !== undefined) existing.photoUrl = String(photoUrl).trim();
+    if (examType !== undefined) existing.examType = String(examType).trim();
+    if (examYear !== undefined) existing.examYear = Number(examYear);
+    if (score !== undefined) existing.score = String(score).trim();
+    if (scoreBreakdown !== undefined) existing.scoreBreakdown = String(scoreBreakdown).trim();
+    if (caption !== undefined) existing.caption = String(caption).trim();
+    if (verificationStatus !== undefined) {
+      existing.verificationStatus = verificationStatus;
+      if (verificationStatus === 'verified' && !existing.verificationDate) {
+        existing.verificationDate = new Date();
+        existing.verifiedBy = req.user?.email || 'admin';
+      }
+    }
+    if (verificationEvidence !== undefined) existing.verificationEvidence = String(verificationEvidence).trim();
+    if (consentStatus !== undefined) existing.consentStatus = consentStatus;
+    if (consentRecordRef !== undefined) existing.consentRecordRef = String(consentRecordRef).trim();
+    if (guardianConsent !== undefined) existing.guardianConsent = Boolean(guardianConsent);
+    if (displayOrder !== undefined) existing.displayOrder = Number(displayOrder);
+
+    // Publication check
+    if (isPublished !== undefined) {
+      if (isPublished && (existing.verificationStatus !== 'verified' || existing.consentStatus !== 'obtained')) {
+        res.status(400).json({
+          success: false,
+          error: { message: 'Cannot publish profile without verified status and obtained consent.' },
+        });
+        return;
+      }
+      existing.isPublished = Boolean(isPublished);
+    }
+
+    await existing.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Student success record updated successfully.',
+      data: existing,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PATCH /api/admin/student-success/:id/publish — Toggle publication
+router.patch('/student-success/:id/publish', async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const rawId = req.params.id;
+    const recordId = Array.isArray(rawId) ? rawId[0] : rawId;
+    if (!mongoose.Types.ObjectId.isValid(recordId)) {
+      res.status(400).json({ success: false, error: { message: 'Invalid record ID' } });
+      return;
+    }
+
+    const record = await StudentSuccess.findById(recordId);
+    if (!record) {
+      res.status(404).json({ success: false, error: { message: 'Record not found' } });
+      return;
+    }
+
+    // Toggle: if currently published, unpublish. If unpublished, verify constraints before publishing
+    if (!record.isPublished) {
+      if (record.verificationStatus !== 'verified' || record.consentStatus !== 'obtained') {
+        res.status(400).json({
+          success: false,
+          error: { message: 'Only profiles with verified status and obtained consent can be published.' },
+        });
+        return;
+      }
+      record.isPublished = true;
+    } else {
+      record.isPublished = false;
+    }
+
+    await record.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Profile ${record.isPublished ? 'published' : 'unpublished'} successfully.`,
+      data: record,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /api/admin/student-success/:id — Remove student success profile
+router.delete('/student-success/:id', async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const rawId = req.params.id;
+    const recordId = Array.isArray(rawId) ? rawId[0] : rawId;
+    if (!mongoose.Types.ObjectId.isValid(recordId)) {
+      res.status(400).json({ success: false, error: { message: 'Invalid record ID' } });
+      return;
+    }
+
+    const deleted = await StudentSuccess.findByIdAndDelete(recordId);
+    if (!deleted) {
+      res.status(404).json({ success: false, error: { message: 'Record not found' } });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Student success profile deleted successfully.',
+      data: { id: recordId },
     });
   } catch (error) {
     next(error);

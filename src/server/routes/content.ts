@@ -6,6 +6,7 @@ import {
   BlogPost,
   Testimonial,
   VideoLesson,
+  StudentSuccess,
 } from '../models/index.js';
 
 const router = Router();
@@ -186,6 +187,30 @@ router.get('/testimonials', async (_req: Request, res: Response, next: NextFunct
       .lean();
 
     res.status(200).json({ success: true, data: testimonials });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ----------------------------------------------------
+// 3b. PUBLIC VERIFIED STUDENT SUCCESS PROFILES
+// Exposes strictly records where:
+// - verificationStatus === 'verified'
+// - consentStatus === 'obtained'
+// - isPublished === true
+// ----------------------------------------------------
+router.get('/student-success', async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const records = await StudentSuccess.find({
+      isPublished: true,
+      verificationStatus: 'verified',
+      consentStatus: 'obtained',
+    })
+      .select('_id studentDisplayName photoUrl examType examYear score scoreBreakdown caption displayOrder')
+      .sort({ displayOrder: 1, createdAt: -1 })
+      .lean();
+
+    res.status(200).json({ success: true, data: records });
   } catch (error) {
     next(error);
   }

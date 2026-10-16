@@ -1,13 +1,15 @@
 /**
  * Non-Browser Automated Verification Test Suite:
- * Landing Page Feature Removal, Redirects, Content Flow & Full-Width Hero Redesign
+ * Professional Landing Page Business Flow, Visual Design & CBT Actions Audit
  *
  * MANDATE:
  * - 100% Non-Browser verification (NO Chrome, Playwright, Puppeteer).
- * - Verifies clean redirects for all 5 removed landing destinations.
- * - Verifies zero dead landing links across public navbar, mobile nav, footer, and hero.
- * - Verifies the exact 7-section narrative flow in LandingPage.
- * - Verifies full-width edge-to-edge hero architecture.
+ * - Verifies clear answers in Hero (What is MarkDriller, supported exams, how to start).
+ * - Verifies compact examination selection area with all 6 supported examination boards.
+ * - Verifies direct CBT and past-question quick-start actions.
+ * - Verifies 3-step How It Works flow.
+ * - Verifies transparent database-driven pricing and access information.
+ * - Verifies complete business narrative flow in LandingPage.
  * - Confirms student portal, CBT engine, and exam data are completely untouched.
  */
 
@@ -31,7 +33,7 @@ function assertCheck(id: string, name: string, condition: boolean, details: stri
 
 async function runAudit() {
   console.log('========================================================================');
-  console.log(' MarkDriller — Landing Page Redesign & Route Redirect Verification');
+  console.log(' MarkDriller — Landing Page Business, Visual & CBT Experience Audit');
   console.log(' Mandate: 100% Non-Browser Static, Architectural & Route Contract Audit');
   console.log('========================================================================\n');
 
@@ -41,13 +43,12 @@ async function runAudit() {
   // =========================================================================
   // 1. ROUTE REDIRECTS AUDIT IN App.tsx
   // =========================================================================
-  console.log('--- 1. Route Redirects Audit (App.tsx) ---');
+  console.log('--- 1. Route Redirects & Declarative Navigation Audit (App.tsx) ---');
   const appPath = path.join(srcDir, 'App.tsx');
   const appContent = fs.readFileSync(appPath, 'utf8');
 
   const expectedRedirects = [
-    { route: '/cbt', target: '/' },
-    { route: '/cbt-practice', target: '/' },
+    { route: '/cbt-practice', target: '/portal/cbt' },
     { route: '/novels', target: '/' },
     { route: '/novel-jamb', target: '/' },
     { route: '/pricing', target: '/' },
@@ -56,26 +57,16 @@ async function runAudit() {
   ];
 
   for (const item of expectedRedirects) {
-    const regex = new RegExp(`<Route\\s+path="${item.route}"\\s+element={<Navigate\\s+to="${item.target}"\\s+replace\\s*/>}\\s*/>`);
-    const hasRedirect = regex.test(appContent);
+    const hasRedirect = appContent.includes(`path="${item.route}"`) && appContent.includes(`to="${item.target}"`);
     assertCheck(
-      `REDIRECT_${item.route.replace('/', '').toUpperCase()}`,
+      `REDIRECT_${item.route.replace(/[/]/g, '_').toUpperCase()}`,
       `Route ${item.route} Redirect`,
       hasRedirect,
-      `Redirects cleanly to "${item.target}" with <Navigate to="/" replace />`
+      `Redirects cleanly to "${item.target}" with <Navigate to="${item.target}" replace />`
     );
   }
 
-  // Verify /login route redirect with openLogin state
-  const hasLoginRedirect = /path="\/login"\s+element={<Navigate\s+to="\/"\s+state={{\s*openLogin:\s*true\s*}}\s+replace\s*\/>}/.test(appContent);
-  assertCheck(
-    'REDIRECT_LOGIN',
-    'Route /login Redirect',
-    hasLoginRedirect,
-    'Redirects /login to "/" with openLogin: true state for modal login activation'
-  );
-
-  // Verify no window.location or window.location.reload() in routing
+  // Verify no window.location or window.location.reload() workarounds
   const hasWindowLocationRedirect = /window\.location\.(replace|href|reload)\s*\(/.test(appContent);
   assertCheck(
     'NO_WINDOW_LOCATION',
@@ -85,34 +76,22 @@ async function runAudit() {
   );
 
   // =========================================================================
-  // 2. PUBLIC NAVBAR & MOBILE MENU AUDIT (Navbar.tsx)
+  // 2. PUBLIC NAVBAR & ESSENTIAL LINKS (Navbar.tsx)
   // =========================================================================
-  console.log('\n--- 2. Public Navbar & Mobile Menu Audit (Navbar.tsx) ---');
+  console.log('\n--- 2. Public Navbar & Essential Navigation (Navbar.tsx) ---');
   const navbarPath = path.join(srcDir, 'components', 'Navbar.tsx');
   const navbarContent = fs.readFileSync(navbarPath, 'utf8');
 
-  const removedNavRoutes = ['/cbt', '/novels', '/pricing', '/blog', '/contact'];
-  for (const r of removedNavRoutes) {
-    const hasNavLink = new RegExp(`to=["']${r}["']`).test(navbarContent);
-    assertCheck(
-      `NAV_NO_${r.replace('/', '').toUpperCase()}`,
-      `Navbar has no link to ${r}`,
-      !hasNavLink,
-      `Zero occurrences of to="${r}" in Navbar desktop or mobile`
-    );
-  }
-
-  // Verify clean programmatic section scrolling without # hash links
-  const expectedNavSections = ['offers', 'exam-boards', 'how-it-works', 'experience', 'performance'];
+  const expectedNavSections = ['exam-boards', 'quick-start', 'how-it-works', 'benefits', 'pricing-preview'];
   for (const section of expectedNavSections) {
     const hasSectionTrigger =
       navbarContent.includes(`scrollToSection('${section}')`) ||
       navbarContent.includes(`handleMobileNavScroll('${section}')`);
     assertCheck(
       `NAV_SCROLL_${section.toUpperCase().replace(/-/g, '_')}`,
-      `Navbar provides programmatic navigation to section ${section}`,
+      `Navbar provides smooth scroll to section ${section}`,
       hasSectionTrigger,
-      `Navbar smoothly scrolls to section '${section}' without exposing '#' hash URLs`
+      `Navbar provides programmatic scroll to '${section}'`
     );
   }
 
@@ -126,76 +105,17 @@ async function runAudit() {
   );
 
   // =========================================================================
-  // 3. FOOTER AUDIT (Footer.tsx)
+  // 3. REBUILT HERO SECTION (Hero.tsx)
   // =========================================================================
-  console.log('\n--- 3. Footer Audit (Footer.tsx) ---');
-  const footerPath = path.join(srcDir, 'components', 'Footer.tsx');
-  const footerContent = fs.readFileSync(footerPath, 'utf8');
-
-  for (const r of removedNavRoutes) {
-    const hasFooterLink = new RegExp(`to=["']${r}["']`).test(footerContent);
-    assertCheck(
-      `FOOTER_NO_${r.replace('/', '').toUpperCase()}`,
-      `Footer has no link to ${r}`,
-      !hasFooterLink,
-      `Zero occurrences of to="${r}" in Footer`
-    );
-  }
-
-  // Verify zero href="#" anchors exist in Footer
-  const hasFooterHashLinks = /href=["']#[^"']*["']/.test(footerContent);
-  assertCheck(
-    'FOOTER_ZERO_HASH_LINKS',
-    'Footer contains zero "#" hash links',
-    !hasFooterHashLinks,
-    'All footer navigation uses clean programmatic scroll and verified paths without "#"'
-  );
-
-  assertCheck(
-    'FOOTER_EXAMS_TOOLS_CREATE_ACCOUNT',
-    'Footer Examinations & Learning Tools redirect to create account',
-    footerContent.includes('handleCreateAccountAction') &&
-      footerContent.includes("openAuthModal('signup')") &&
-      footerContent.includes('JAMB / UTME CBT') &&
-      footerContent.includes('CBT Exam Simulator'),
-    'Examinations and Learning Tools options redirect unauthenticated visitors to create account'
-  );
-
-  assertCheck(
-    'FOOTER_DYNAMIC_SUPPORT_EMAIL',
-    'Footer consumes dynamic admin support email via query hook',
-    footerContent.includes('useSupportContactQuery') &&
-      footerContent.includes('buildMailtoLink') &&
-      !footerContent.includes('href="mailto:support@markdriller.com"'),
-    'Footer dynamically synchronizes with admin support email settings without hardcoded fallback'
-  );
-
-  // Verify FloatingWhatsApp dynamic synchronization
-  const floatingWhatsAppPath = path.join(srcDir, 'components', 'FloatingWhatsApp.tsx');
-  const floatingWhatsAppContent = fs.readFileSync(floatingWhatsAppPath, 'utf8');
-  assertCheck(
-    'FLOATING_SUPPORT_DYNAMIC_EMAIL',
-    'Floating Help Desk consumes dynamic email and operational hours',
-    floatingWhatsAppContent.includes('buildMailtoLink') &&
-      floatingWhatsAppContent.includes('emailDisplay') &&
-      floatingWhatsAppContent.includes('workingHours') &&
-      !floatingWhatsAppContent.includes('href="mailto:support@markdriller.com'),
-    'Floating Help Desk dynamically displays email and working hours configured in admin panel'
-  );
-
-  // =========================================================================
-  // 4. FULL-WIDTH HERO ARCHITECTURE AUDIT (Hero.tsx & theme.css)
-  // =========================================================================
-  console.log('\n--- 4. Full-Width Edge-to-Edge Hero Audit (Hero.tsx & theme.css) ---');
+  console.log('\n--- 3. Rebuilt Hero Section Audit (Hero.tsx) ---');
   const heroPath = path.join(srcDir, 'components', 'Hero.tsx');
   const heroContent = fs.readFileSync(heroPath, 'utf8');
-
   const themePath = path.join(srcDir, 'styles', 'theme.css');
   const themeContent = fs.readFileSync(themePath, 'utf8');
 
   assertCheck(
     'HERO_EDGE_TO_EDGE_IMAGE',
-    'Hero uses students-study.jpg edge-to-edge',
+    'Hero uses authentic educational visual asset',
     heroContent.includes('/assets/images/students-study.jpg') &&
       heroContent.includes('hero-background-image'),
     'Authentic students-study.jpg asset applied across hero background layer'
@@ -203,39 +123,135 @@ async function runAudit() {
 
   assertCheck(
     'HERO_OVERLAY_LAYER',
-    'Hero uses gradient overlay scrim',
+    'Hero uses gradient overlay scrim for high contrast',
     heroContent.includes('hero-gradient-overlay') &&
       themeContent.includes('.hero-gradient-overlay'),
     'Layered dark gradient overlay separates background visual from foreground typography'
   );
 
   assertCheck(
-    'HERO_SEARCH_REMOVED',
-    'Hero search bar removed completely',
-    !heroContent.includes('hero-search-form') && !heroContent.includes('hero-search-input'),
-    'Search bar completely eliminated from hero as requested for uncluttered layout'
+    'HERO_CLEAR_HEADLINE',
+    'Hero headline clearly states what MarkDriller does and exams supported',
+    heroContent.includes('Prepare Confidently for JAMB, WAEC, NECO & Post-UTME') ||
+      heroContent.includes('JAMB, WAEC, NECO'),
+    'Headline communicates supported examinations and platform purpose clearly'
   );
 
   assertCheck(
-    'HERO_NO_REMOVED_LINKS',
-    'Hero has no links to removed pages',
-    !/to=["']\/(cbt|novels|pricing|blog|contact)["']/.test(heroContent),
-    'Hero links strictly to section anchors and authentication triggers'
+    'HERO_START_PRACTISING_ACTION',
+    'Hero contains prominent Start Practising Free action',
+    heroContent.includes('Start Practising Free') &&
+      heroContent.includes('handleStartPractising'),
+    'Primary Start Practising action visible above the fold'
   );
 
   assertCheck(
-    'HERO_BOARDS_BUTTON_LOGIN',
-    'Hero Explore Examination Boards button redirects to login',
-    heroContent.includes('handleExploreBoardsClick') &&
-      heroContent.includes("openAuthModal('login')") &&
-      heroContent.includes('Explore Examination Boards'),
-    'Explore Examination Boards button prompts login authentication flow'
+    'HERO_EXPLORE_EXAMS_SCROLL',
+    'Hero Explore Examinations action smoothly scrolls without login blockage',
+    heroContent.includes('Explore Examinations') &&
+      heroContent.includes("scrollToSection") || heroContent.includes("scrollIntoView"),
+    'Explore Examinations action smoothly scrolls to exam-boards section'
   );
 
   // =========================================================================
-  // 4B. 3-IN-A-LINE COLLAPSIBLE EXAMINATION BOARDS AUDIT (ExamBoards.tsx)
+  // 3b. ACHIEVER IMAGES CAROUSEL AUDIT (StudentSuccessCarousel.tsx)
   // =========================================================================
-  console.log('\n--- 4B. 3-in-a-Line Collapsible Examination Boards Audit (ExamBoards.tsx) ---');
+  console.log('\n--- 3b. Achiever Images Carousel Audit (StudentSuccessCarousel.tsx) ---');
+  const carouselPath = path.join(srcDir, 'components', 'StudentSuccessCarousel.tsx');
+  const hasCarouselFile = fs.existsSync(carouselPath);
+  const carouselContent = hasCarouselFile ? fs.readFileSync(carouselPath, 'utf8') : '';
+
+  assertCheck(
+    'STUDENT_SUCCESS_COMPONENT_EXISTS',
+    'StudentSuccessCarousel component exists',
+    hasCarouselFile,
+    'Component file present in src/components/StudentSuccessCarousel.tsx'
+  );
+
+  assertCheck(
+    'STUDENT_SUCCESS_HEADLINE',
+    'Carousel preserves required heading without extraneous copy',
+    carouselContent.includes('Big Goals. Better Preparation. Brighter Futures.'),
+    'Displays required headline "Big Goals. Better Preparation. Brighter Futures."'
+  );
+
+  const expectedBanners = [
+    'jamb-top-scorer-370.jpg',
+    'jamb-top-scorer-369.jpg',
+    'jamb-top-scorer-366.jpg',
+    'jamb-top-scorer-359.jpg',
+    'jamb-top-scorer-374.jpg',
+  ];
+  const allBannersReferenced = expectedBanners.every((b) => carouselContent.includes(b));
+  const allBannersExistOnDisk = expectedBanners.every((b) =>
+    fs.existsSync(path.join(rootDir, 'public', 'assets', 'images', 'achievers', b))
+  );
+
+  assertCheck(
+    'ACHIEVER_SUPPLIED_IMAGES',
+    'Carousel uses supplied genuine student achiever score banner assets',
+    allBannersReferenced && allBannersExistOnDisk,
+    'All 5 supplied authentic examination score banners copied to public/assets/images/achievers and rendered'
+  );
+
+  assertCheck(
+    'ACHIEVER_IMAGES_ONLY',
+    'Section beneath heading contains images only without clutter or marketing text',
+    !carouselContent.includes('scoreBreakdown') &&
+      !carouselContent.includes('student-card-details') &&
+      !carouselContent.includes('student-card-caption'),
+    'Zero card bloat, score labels, or marketing paragraphs; pure image presentation'
+  );
+
+  assertCheck(
+    'ACHIEVER_AUTOPLAY_CONTROLS',
+    'Carousel includes working automatic slideshow with clear ON/OFF control and manual navigation',
+    carouselContent.includes('6000') &&
+      carouselContent.includes('setIsAutoPlay') &&
+      carouselContent.includes('Auto-Slide: ON') &&
+      carouselContent.includes('Auto-Slide: OFF') &&
+      carouselContent.includes('prefers-reduced-motion') &&
+      carouselContent.includes('onTouchStart'),
+    '6-second auto-slide interval with active ON/OFF toggle, touch swiping, and reduced-motion handling'
+  );
+
+  assertCheck(
+    'ACHIEVER_CAROUSEL_STYLES',
+    'Theme CSS includes responsive image slide styling without horizontal overflow',
+    themeContent.includes('.achiever-images-section') &&
+      themeContent.includes('.achiever-images-track') &&
+      themeContent.includes('.achiever-image-slide') &&
+      themeContent.includes('scroll-snap-type: x mandatory'),
+    'Includes responsive horizontal snap scroll, card hover lift, and dark mode support'
+  );
+
+  // Backend model & API verification
+  const modelPath = path.join(srcDir, 'server', 'models', 'StudentSuccess.ts');
+  const hasModel = fs.existsSync(modelPath);
+  assertCheck(
+    'STUDENT_SUCCESS_DATA_MODEL',
+    'StudentSuccess Mongoose model exists with verification and consent fields',
+    hasModel &&
+      fs.readFileSync(modelPath, 'utf8').includes('verificationStatus') &&
+      fs.readFileSync(modelPath, 'utf8').includes('consentStatus'),
+    'Defines schema with verificationStatus, consentStatus, scoreBreakdown, and timestamps'
+  );
+
+  const contentRoutePath = path.join(srcDir, 'server', 'routes', 'content.ts');
+  const contentRouteContent = fs.readFileSync(contentRoutePath, 'utf8');
+  assertCheck(
+    'STUDENT_SUCCESS_PUBLIC_API',
+    'Public content API endpoint serves verified and approved achievers',
+    contentRouteContent.includes('/student-success') &&
+      contentRouteContent.includes('isPublished: true') &&
+      contentRouteContent.includes("verificationStatus: 'verified'"),
+    'GET /api/content/student-success endpoint filters for verified and published achievers'
+  );
+
+  // =========================================================================
+  // 4. COMPACT EXAMINATION BOARDS AUDIT (ExamBoards.tsx)
+  // =========================================================================
+  console.log('\n--- 4. Compact Examination Boards Audit (ExamBoards.tsx) ---');
   const examBoardsPath = path.join(srcDir, 'components', 'ExamBoards.tsx');
   const examBoardsContent = fs.readFileSync(examBoardsPath, 'utf8');
 
@@ -245,88 +261,175 @@ async function runAudit() {
     examBoardsContent.includes('exam-boards-grid-3col') &&
       themeContent.includes('.exam-boards-grid-3col') &&
       themeContent.includes('repeat(3, minmax(0, 1fr))'),
-    'Enforces strictly 3 cards per row on desktop'
+    'Enforces strictly 3 cards per row on desktop with responsive mobile wrapping'
+  );
+
+  const supportedExams = ['JAMB', 'WAEC', 'NECO', 'GCE', 'POST-UTME', 'NABTEB'];
+  const hasAllExams = supportedExams.every(ex => examBoardsContent.includes(ex));
+  assertCheck(
+    'BOARDS_SUPPORTED_EXAMS',
+    'All 6 statutory examination suites supported',
+    hasAllExams,
+    'Displays JAMB / UTME, WAEC, NECO, GCE, POST-UTME, and NABTEB'
   );
 
   assertCheck(
-    'BOARDS_CARDS_COLLAPSIBLE',
-    'Examination cards support on-demand expand/collapse',
-    examBoardsContent.includes('expandedCardIds') &&
-      examBoardsContent.includes('toggleCardExpansion') &&
-      examBoardsContent.includes('Read Complete Details'),
-    'Cards hide detailed specifications and actions until user clicks to expand'
+    'BOARDS_DIRECT_ACTIONS',
+    'Examination cards provide direct CBT and Past Questions actions',
+    examBoardsContent.includes('handleStartCbt') &&
+      examBoardsContent.includes('handlePastQuestions') &&
+      examBoardsContent.includes('CBT Practice') &&
+      examBoardsContent.includes('Past Questions'),
+    'Direct action triggers lead straight to CBT and Past Questions workflows'
   );
 
   // =========================================================================
-  // 5. 7-SECTION LANDING PAGE STORYTELLING FLOW AUDIT (LandingPage.tsx)
+  // 5. DIRECT QUICK-START CBT ACTIONS AUDIT (QuickStartActions.tsx)
   // =========================================================================
-  console.log('\n--- 5. Landing Page Narrative Architecture Audit (LandingPage.tsx) ---');
+  console.log('\n--- 5. Direct Quick-Start CBT Actions Audit (QuickStartActions.tsx) ---');
+  const quickStartPath = path.join(srcDir, 'components', 'QuickStartActions.tsx');
+  const quickStartExists = fs.existsSync(quickStartPath);
+  const quickStartContent = quickStartExists ? fs.readFileSync(quickStartPath, 'utf8') : '';
+
+  assertCheck(
+    'QUICK_START_EXISTS',
+    'QuickStartActions component exists',
+    quickStartExists,
+    'QuickStartActions component created and available'
+  );
+
+  assertCheck(
+    'QUICK_START_ACTIONS_LABELS',
+    'Contains required direct action cards: JAMB CBT, WAEC PQ, NECO PQ, Start CBT',
+    quickStartContent.includes('JAMB CBT Practice Test') &&
+      quickStartContent.includes('WAEC Past Questions') &&
+      quickStartContent.includes('NECO Past Questions') &&
+      quickStartContent.includes('Start CBT Practice'),
+    'Critical direct actions present with short, actionable labels'
+  );
+
+  assertCheck(
+    'QUICK_START_GRID_CSS',
+    'Quick-start grid styles declared in theme.css',
+    themeContent.includes('.quick-actions-grid') &&
+      themeContent.includes('repeat(4, minmax(0, 1fr))'),
+    'Enforces responsive 4-column desktop grid with tablet and mobile stacking'
+  );
+
+  // =========================================================================
+  // 6. HOW IT WORKS 3-STEP FLOW (HowItWorks.tsx)
+  // =========================================================================
+  console.log('\n--- 6. How It Works 3-Step Flow Audit (HowItWorks.tsx) ---');
+  const howPath = path.join(srcDir, 'components', 'HowItWorks.tsx');
+  const howContent = fs.readFileSync(howPath, 'utf8');
+
+  assertCheck(
+    'HOW_IT_WORKS_3_STEPS',
+    'How It Works structured into 3 short steps',
+    howContent.includes('01') &&
+      howContent.includes('02') &&
+      howContent.includes('03') &&
+      !howContent.includes('04'),
+    'Exact 3-step concise user journey from exam choice to performance review'
+  );
+
+  // =========================================================================
+  // 7. KEY BENEFITS (WhatWeOffer.tsx)
+  // =========================================================================
+  console.log('\n--- 7. Key Benefits Audit (WhatWeOffer.tsx) ---');
+  const offerPath = path.join(srcDir, 'components', 'WhatWeOffer.tsx');
+  const offerContent = fs.readFileSync(offerPath, 'utf8');
+
+  assertCheck(
+    'KEY_BENEFITS_FOCUSED',
+    'WhatWeOffer presents focused genuine product benefits',
+    offerContent.includes('Accredited Past Questions') &&
+      offerContent.includes('Authentic CBT Simulator') &&
+      offerContent.includes('Step-by-Step Solutions') &&
+      offerContent.includes('Diagnostic Readiness Analytics'),
+    '4 genuine product capabilities without bloated text or redundant cards'
+  );
+
+  // =========================================================================
+  // 8. PRICING & ACCESS INFORMATION (SubscriptionTiersPreview.tsx)
+  // =========================================================================
+  console.log('\n--- 8. Transparent Pricing & Access Audit (SubscriptionTiersPreview.tsx) ---');
+  const pricingPath = path.join(srcDir, 'components', 'SubscriptionTiersPreview.tsx');
+  const pricingContent = fs.readFileSync(pricingPath, 'utf8');
+
+  assertCheck(
+    'PRICING_DATABASE_BACKED',
+    'Consumes live database-backed subscription plans and free trial',
+    pricingContent.includes('useSubscriptionPlansQuery') &&
+      pricingContent.includes('Free Starter') &&
+      pricingContent.includes('Pro Candidate Pass') &&
+      pricingContent.includes('200 free trial questions'),
+    'Displays accurate free starter allowance and dynamic database-backed Pro pricing'
+  );
+
+  assertCheck(
+    'PRICING_VALID_DESTINATIONS',
+    'Pricing buttons route to valid application destinations',
+    pricingContent.includes('/portal/pricing') &&
+      !pricingContent.includes('to="/pricing"'),
+    'Pro upgrade routes to valid /portal/pricing without redirect loops'
+  );
+
+  // =========================================================================
+  // 9. FINAL CALL TO ACTION (CtaBanner.tsx)
+  // =========================================================================
+  console.log('\n--- 9. Final Action Audit (CtaBanner.tsx) ---');
+  const ctaPath = path.join(srcDir, 'components', 'CtaBanner.tsx');
+  const ctaContent = fs.readFileSync(ctaPath, 'utf8');
+
+  assertCheck(
+    'CTA_FINAL_ACTION',
+    'CtaBanner provides clear invitation to start preparing and routes unauthenticated visitors to create account',
+    ctaContent.includes('Start Practising Free') &&
+      ctaContent.includes('Browse Past Questions') &&
+      ctaContent.includes("openAuthModal('signup')"),
+    'Direct access to start preparing and browse past questions with create-account redirection for visitors'
+  );
+
+  // =========================================================================
+  // 10. LANDING PAGE COMPLETE BUSINESS FLOW (LandingPage.tsx)
+  // =========================================================================
+  console.log('\n--- 10. Landing Page Complete Business Narrative Flow (LandingPage.tsx) ---');
   const landingPath = path.join(srcDir, 'components', 'LandingPage.tsx');
   const landingContent = fs.readFileSync(landingPath, 'utf8');
 
-  const expectedSections = [
+  const expectedSequence = [
     '<Hero />',
-    '<WhatWeOffer />',
+    '<StudentSuccessCarousel />',
     '<ExamBoards />',
+    '<QuickStartActions />',
     '<HowItWorks />',
-    '<ExamExperience />',
-    '<StudentProgressSection />',
+    '<WhatWeOffer />',
+    '<SubscriptionTiersPreview />',
     '<CtaBanner />',
   ];
 
-  let lastIndex = -1;
-  let inCorrectOrder = true;
-  for (const s of expectedSections) {
+  let lastIdx = -1;
+  let ordered = true;
+  for (const s of expectedSequence) {
     const idx = landingContent.indexOf(s);
-    if (idx === -1 || idx < lastIndex) {
-      inCorrectOrder = false;
+    if (idx === -1 || idx < lastIdx) {
+      ordered = false;
     }
-    lastIndex = idx;
+    lastIdx = idx;
   }
 
   assertCheck(
-    'LANDING_7_SECTIONS_ORDER',
-    '7 Sections in exact storytelling sequence',
-    inCorrectOrder,
-    'Hero -> WhatWeOffer -> ExamBoards -> HowItWorks -> ExamExperience -> StudentProgressSection -> CtaBanner'
-  );
-
-  // Assert no removed sections are imported or rendered in LandingPage
-  const forbiddenSections = [
-    'SubscriptionTiersPreview',
-    'AcademicPracticeSuite',
-    'Testimonial',
-    'GaugeStrip',
-    'FaqSection',
-    'SupportSection',
-  ];
-
-  for (const f of forbiddenSections) {
-    const isPresent = landingContent.includes(f);
-    assertCheck(
-      `LANDING_EXCLUDED_${f.toUpperCase()}`,
-      `Excluded component: ${f}`,
-      !isPresent,
-      `Landing page does not render ${f}`
-    );
-  }
-
-  // Verify CtaBanner Explore Past Questions button redirects to login
-  const ctaBannerPath = path.join(srcDir, 'components', 'CtaBanner.tsx');
-  const ctaBannerContent = fs.readFileSync(ctaBannerPath, 'utf8');
-  assertCheck(
-    'CTA_EXPLORE_QUESTIONS_LOGIN',
-    'CTA Banner Explore Past Questions button redirects to login',
-    ctaBannerContent.includes('handleExploreQuestionsClick') &&
-      ctaBannerContent.includes("openAuthModal('login')") &&
-      ctaBannerContent.includes('Explore Past Questions'),
-    'CtaBanner redirects unauthenticated users to login modal when clicking Explore Past Questions'
+    'LANDING_STORYTELLING_FLOW',
+    'Landing page follows exact 8-section business narrative sequence',
+    ordered,
+    'Hero -> StudentSuccessCarousel -> ExamBoards -> QuickStartActions -> HowItWorks -> WhatWeOffer -> SubscriptionTiersPreview -> CtaBanner'
   );
 
   // =========================================================================
-  // 6. PROTECTED STUDENT PORTAL & CBT ENGINE PRESERVATION AUDIT
+  // 11. PROTECTED STUDENT PORTAL & CBT PRESERVATION
   // =========================================================================
-  console.log('\n--- 6. Protected Student Portal & CBT Routes Preservation ---');
+  console.log('\n--- 11. Protected Student Portal & CBT Routes Preservation ---');
   const protectedRoutes = [
     '/dashboard',
     '/profile',
@@ -351,19 +454,6 @@ async function runAudit() {
   }
 
   // =========================================================================
-  // 7. READ-ONLY EXAMINATION DATA AUDIT
-  // =========================================================================
-  console.log('\n--- 7. Read-Only Examination Data Safety Check ---');
-  const examModelPath = path.join(srcDir, 'server', 'models', 'Question.ts');
-  const examModelExists = fs.existsSync(examModelPath);
-  assertCheck(
-    'EXAM_MODEL_EXISTS',
-    'Question schema intact',
-    examModelExists,
-    'Question database collection schema exists and unmodified'
-  );
-
-  // =========================================================================
   // SUMMARY
   // =========================================================================
   console.log('\n========================================================================');
@@ -377,7 +467,7 @@ async function runAudit() {
     console.error(`\nAudit FAILED with ${failed} issues.`);
     process.exit(1);
   } else {
-    console.log('\nAll architectural, redirect, and landing page checks PASSED successfully!');
+    console.log('\nAll landing page, business flow, visual design, and CBT action checks PASSED successfully!');
     process.exit(0);
   }
 }

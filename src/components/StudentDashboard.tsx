@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { useCurrentUserQuery } from '../api/auth.js';
 import {
@@ -20,6 +20,7 @@ export const StudentDashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuthStore();
   const { data: userData } = useCurrentUserQuery();
   const { data: exams, isLoading: examsLoading } = useExamsQuery();
+  const [searchParams] = useSearchParams();
 
   const currentUser = userData?.user || user;
   const currentTargetExamId = (currentUser?.targetExam as any)?._id || (currentUser?.targetExam as any);
@@ -35,6 +36,27 @@ export const StudentDashboard: React.FC = () => {
   const [isCbtModalOpen, setIsCbtModalOpen] = useState(false);
   const [cbtModalSubjectId, setCbtModalSubjectId] = useState<string | undefined>(undefined);
   const [cbtModalTopicId, setCbtModalTopicId] = useState<string | undefined>(undefined);
+
+  const startMockParam = searchParams.get('startMock') || searchParams.get('exam') || '';
+
+  useEffect(() => {
+    if (startMockParam && exams && exams.length > 0 && !isCbtModalOpen) {
+      const p = startMockParam.toLowerCase();
+      const match = exams.find(
+        (ex) =>
+          ex._id === startMockParam ||
+          ex.shortCode.toLowerCase().includes(p) ||
+          p.includes(ex.shortCode.toLowerCase()) ||
+          ex.name.toLowerCase().includes(p)
+      );
+      if (match) {
+        if (match._id !== activeExamId) {
+          updateTargetExam.mutate({ examId: match._id });
+        }
+        setIsCbtModalOpen(true);
+      }
+    }
+  }, [startMockParam, exams, isCbtModalOpen, activeExamId, updateTargetExam]);
 
   const handleLaunchTopicDrill = (subjectId: string, topicId: string) => {
     setCbtModalSubjectId(subjectId);
