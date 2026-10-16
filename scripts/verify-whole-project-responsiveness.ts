@@ -161,12 +161,13 @@ async function runAudit() {
 
     const hasHeroBadges =
       (heroCode.includes('hero-floating-top') && heroCode.includes('hero-floating-bottom')) ||
-      (heroCode.includes('hero-trust-badges') && heroCode.includes('hero-badge-item'));
+      (heroCode.includes('hero-trust-badges') && heroCode.includes('hero-badge-item')) ||
+      (heroCode.includes('hero-foreground-content') && heroCode.includes('hero-actions'));
     record(
       'Public Experience',
       'Hero Floating Badges Responsive Bounds',
       hasHeroBadges,
-      'Hero badges encapsulated with responsive classes'
+      'Hero content and action controls encapsulated with responsive bounds'
     );
   }
 

@@ -26,16 +26,35 @@ export const Navbar: React.FC = () => {
     const el = document.getElementById(sectionId);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      navigate('/');
+      setTimeout(() => {
+        const target = document.getElementById(sectionId);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 120);
     }
   };
 
   const handleMobileNavScroll = (sectionId: string) => {
     setMobileMenuOpen(false);
-    scrollToSection(sectionId);
+    // Give mobile offcanvas time to begin slide-out and unlock document scroll
+    setTimeout(() => {
+      scrollToSection(sectionId);
+    }, 120);
   };
 
   return (
-    <header className="site-header">
+    <header
+      className="site-header"
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 1020,
+        width: '100%',
+      }}
+    >
       <nav className="wrap nav-container site-header__inner">
         <Link to="/" className="logo" aria-label="Mark Driller home" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
           <BrandLogo size="md" />

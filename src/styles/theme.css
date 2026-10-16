@@ -141,9 +141,10 @@
 
 html {
   scroll-behavior: smooth;
-  overflow-x: hidden;
-  overflow-y: auto !important;
-  height: auto !important;
+  scroll-padding-top: 84px;
+  overflow-x: clip;
+  overflow-y: auto;
+  height: auto;
   min-height: 100%;
   min-height: 100dvh;
 }
@@ -155,8 +156,8 @@ body {
   font-size: var(--font-size-body, 16px);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-  overflow-y: auto !important;
+  overflow-x: clip;
+  overflow-y: visible;
   min-height: 100vh;
   min-height: 100dvh;
   position: relative;
@@ -164,10 +165,13 @@ body {
   padding-right: var(--safe-pad-right);
 }
 
-/* Ensure no modal overlay or offcanvas lock freezes vertical scrolling */
-body.modal-open,
+/* Offcanvas mobile drawer locks background scrolling ONLY while active */
 body.offcanvas-open {
-  overflow-y: auto !important;
+  overflow: hidden !important;
+}
+
+body.modal-open {
+  overflow: hidden !important;
 }
 
 #root {
@@ -176,6 +180,21 @@ body.offcanvas-open {
   display: flex;
   flex-direction: column;
   overflow: visible;
+}
+
+/* Ensure sticky and fixed headers do not cover section headings or important content */
+section[id],
+div[id].section,
+.section[id],
+#hero,
+#exam-boards,
+#quick-start,
+#how-it-works,
+#benefits,
+#pricing-preview,
+#cta,
+#student-success-carousel {
+  scroll-margin-top: calc(var(--header-height, 68px) + 20px);
 }
 
 img, svg {
@@ -294,7 +313,10 @@ h4 {
 header.site-header {
   position: sticky;
   top: 0;
-  z-index: 50;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1020;
   background: var(--nav-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -662,14 +684,14 @@ nav.wrap.nav-container,
 .hero.full-width-hero {
   position: relative;
   width: 100%;
-  min-height: clamp(520px, 75vh, 660px);
+  min-height: clamp(380px, 56vh, 560px);
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: clamp(40px, 5vw, 64px) 0 clamp(36px, 4.5vw, 52px);
+  padding: clamp(32px, 4.5vw, 56px) 0 clamp(28px, 4vw, 48px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   background-color: #080d1b;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .hero-background-layer {
@@ -794,14 +816,14 @@ nav.wrap.nav-container,
 }
 
 .hero-headline {
-  font-size: clamp(34px, 4.6vw, 58px);
+  font-size: clamp(30px, 4.2vw, 52px);
   font-weight: 800;
-  line-height: 1.08;
-  letter-spacing: -0.028em;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
   color: #ffffff;
-  margin: 0 0 clamp(12px, 1.6vw, 18px) 0;
+  margin: 0 0 clamp(12px, 1.5vw, 16px) 0;
   text-align: left;
-  max-width: 680px;
+  max-width: 640px;
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
 }
 
@@ -810,10 +832,10 @@ nav.wrap.nav-container,
 }
 
 .hero-lede {
-  font-size: clamp(15px, 1.25vw, 17.5px);
+  font-size: clamp(15px, 1.2vw, 17px);
   line-height: 1.5;
-  max-width: 600px;
-  color: rgba(248, 250, 252, 0.88);
+  max-width: 580px;
+  color: rgba(248, 250, 252, 0.9);
   font-weight: 400;
   margin: 0 0 clamp(18px, 2.2vw, 24px) 0;
   text-align: left;
@@ -827,11 +849,11 @@ nav.wrap.nav-container,
 
 .hero.full-width-hero .hero-actions {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   justify-content: flex-start;
   align-items: center;
   flex-wrap: wrap;
-  margin-bottom: 22px;
+  margin-bottom: 0;
 }
 
 .btn-custom-accent {
@@ -5439,7 +5461,8 @@ select:not(.MuiSelect-nativeInput) {
   border-top: 1px solid var(--paper-line);
   border-bottom: 1px solid var(--paper-line);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  overflow-x: clip;
 }
 
 [data-theme='dark'] .achiever-images-section {
@@ -5648,6 +5671,7 @@ select:not(.MuiSelect-nativeInput) {
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
   padding: 8px 4px 18px 4px;
   scrollbar-width: none;
 }

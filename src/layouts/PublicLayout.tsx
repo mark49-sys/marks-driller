@@ -11,9 +11,18 @@ import { Footer } from '../components/Footer.js';
  */
 export const PublicLayout: React.FC = () => {
   return (
-    <div className="public-layout-shell" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--paper, #eceee6)' }}>
+    <div
+      className="public-layout-shell"
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: 'var(--paper, #eceee6)',
+        overflow: 'visible',
+      }}
+    >
       <Navbar />
-      <main style={{ flex: 1 }}>
+      <main style={{ flex: 1, width: '100%', overflow: 'visible' }}>
         <Outlet />
       </main>
       <Footer />

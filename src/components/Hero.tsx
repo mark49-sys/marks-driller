@@ -44,15 +44,9 @@ export const Hero: React.FC = () => {
         <div className="hero-gradient-overlay" />
       </div>
 
-      {/* Layer 3: Compact, high-impact foreground content visible above the fold */}
+      {/* Layer 3: High-impact foreground content visible above the fold */}
       <div className="wrap hero-wrap hero__inner">
         <div className="hero-foreground-content">
-          <div className="hero-eyebrow-container">
-            <span className="hero-eyebrow-text">
-              NIGERIA'S FOREMOST CBT EXAM PRACTICE PLATFORM
-            </span>
-          </div>
-
           <h1 className="hero-headline">
             Prepare Confidently for JAMB, WAEC, NECO &amp; Post-UTME.
           </h1>
@@ -78,24 +72,6 @@ export const Hero: React.FC = () => {
             >
               Explore Examinations ↓
             </button>
-          </div>
-
-          {/* Authenticated Platform Capability Badges */}
-          <div className="hero-trust-badges">
-            <div className="hero-badge-item">
-              <span className="badge-check" aria-hidden="true">✓</span>
-              <span>{totalQuestions} ACCREDITED QUESTIONS</span>
-            </div>
-            <span className="badge-divider" aria-hidden="true">·</span>
-            <div className="hero-badge-item">
-              <span className="badge-check" aria-hidden="true">✓</span>
-              <span>OFFICIAL 8-KEY CBT ENGINE</span>
-            </div>
-            <span className="badge-divider" aria-hidden="true">·</span>
-            <div className="hero-badge-item">
-              <span className="badge-check" aria-hidden="true">✓</span>
-              <span>FREE STARTER · NO CARD REQUIRED</span>
-            </div>
           </div>
         </div>
       </div>
