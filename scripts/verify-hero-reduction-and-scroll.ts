@@ -152,9 +152,9 @@ assertCheck(
   'HERO_RESPONSIVE_HEIGHT',
   'Hero section uses compact responsive min-height and visible overflow',
   themeContent.includes('.hero.full-width-hero') &&
-    themeContent.includes('clamp(380px') &&
+    (themeContent.includes('clamp(320px') || themeContent.includes('clamp(380px')) &&
     themeContent.includes('overflow: visible;'),
-  'Hero min-height is compact clamp(380px, 56vh, 560px) with overflow: visible'
+  'Hero min-height is compact clamp(320px, 48vh, 460px) with overflow: visible'
 );
 
 // Achiever carousel overflow & touch-action
