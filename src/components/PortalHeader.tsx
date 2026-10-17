@@ -85,11 +85,37 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
   const isToolActive = LEARNING_TOOLS.some((t) => currentPath.startsWith(normalizePortalPath(t.path)));
   const isMoreActive = MORE_TOOLS.some((t) => currentPath.startsWith(normalizePortalPath(t.path)));
 
+  const releaseScrollLock = () => {
+    document.body.classList.remove('modal-open', 'offcanvas-open');
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+    document.documentElement.style.overflow = '';
+  };
+
+  const handleDrawerNavClick = () => {
+    setMobileMenuOpen(false);
+    releaseScrollLock();
+  };
+
   const handleLogout = () => {
     clearSession();
-    setMobileMenuOpen(false);
+    handleDrawerNavClick();
     navigate('/');
   };
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 1180) {
+        setMobileMenuOpen(false);
+        releaseScrollLock();
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      releaseScrollLock();
+    };
+  }, []);
 
   // Close dropdowns when clicking outside or pressing Escape
   useEffect(() => {
@@ -723,7 +749,7 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
             <button
               type="button"
               className="portal-menu-btn"
-              onClick={() => setMobileMenuOpen(true)}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Open student portal navigation drawer"
               aria-expanded={mobileMenuOpen}
               aria-controls="portal-mobile-drawer"
@@ -750,7 +776,13 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
       <Offcanvas
         id="portal-mobile-drawer"
         show={mobileMenuOpen}
-        onHide={() => setMobileMenuOpen(false)}
+        restoreFocus={false}
+        restoreFocusOptions={{ preventScroll: true }}
+        onHide={() => {
+          setMobileMenuOpen(false);
+          releaseScrollLock();
+        }}
+        onExited={releaseScrollLock}
         placement="end"
         className="mobile-offcanvas"
         style={{
@@ -858,7 +890,7 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
                   </span>
                   <Link
                     to="/profile"
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={handleDrawerNavClick}
                     style={{ fontSize: '11.5px', color: 'var(--forest, #225a38)', fontWeight: 700, marginLeft: 'auto', textDecoration: 'none' }}
                   >
                     View Profile ➔
@@ -871,7 +903,7 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
             <button
               type="button"
               onClick={() => {
-                setMobileMenuOpen(false);
+                handleDrawerNavClick();
                 setSearchModalOpen(true);
               }}
               style={{
@@ -916,7 +948,7 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
                     <Link
                       key={item.path}
                       to={item.path}
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={handleDrawerNavClick}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -952,7 +984,7 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
                     <Link
                       key={item.path}
                       to={item.path}
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={handleDrawerNavClick}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -995,7 +1027,7 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
                     <Link
                       key={item.path}
                       to={item.path}
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={handleDrawerNavClick}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -1049,7 +1081,7 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
                 className="btn-custom btn-custom-primary"
                 style={{ width: '100%', justifyContent: 'center', padding: '11px', fontSize: '13.5px' }}
                 onClick={() => {
-                  setMobileMenuOpen(false);
+                  handleDrawerNavClick();
                   openAuthModal('login');
                 }}
               >

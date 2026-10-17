@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import Offcanvas from 'react-bootstrap/Offcanvas';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore.js';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { BrandLogo } from './BrandLogo.js';
@@ -11,9 +11,21 @@ export const Navbar: React.FC = () => {
   const { mobileMenuOpen, setMobileMenuOpen, openAuthModal } = useAppStore();
   const { user, isAuthenticated, clearSession } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const pendingScrollRef = useRef<string | null>(null);
+
+  const releaseScrollLock = () => {
+    document.body.classList.remove('modal-open', 'offcanvas-open');
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+    document.documentElement.style.overflow = '';
+  };
 
   const handleNavClick = () => {
+    pendingScrollRef.current = null;
     setMobileMenuOpen(false);
+    releaseScrollLock();
   };
 
   const handleLogout = () => {
@@ -22,28 +34,108 @@ export const Navbar: React.FC = () => {
     navigate('/');
   };
 
+  const resolveTargetElement = (sectionId: string): HTMLElement | null => {
+    let el = document.getElementById(sectionId);
+    if (!el) {
+      if (sectionId === 'examinations' || sectionId === 'exam-boards') {
+        el = document.getElementById('exam-boards') || document.getElementById('examinations');
+      } else if (sectionId === 'pricing' || sectionId === 'pricing-preview') {
+        el = document.getElementById('pricing-preview') || document.getElementById('pricing');
+      }
+    }
+    return el;
+  };
+
+  const executeScrollToElement = (target: HTMLElement) => {
+    const navHeader = document.querySelector('header.site-header') as HTMLElement | null;
+    const headerHeight = navHeader ? navHeader.getBoundingClientRect().height : 80;
+    const rect = target.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const targetY = Math.max(0, rect.top + scrollTop - headerHeight - 16);
+
+    try {
+      window.scrollTo({
+        top: targetY,
+        behavior: 'smooth',
+      });
+    } catch {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    try {
+      if (!target.hasAttribute('tabindex')) {
+        target.setAttribute('tabindex', '-1');
+      }
+      target.focus({ preventScroll: true });
+    } catch {
+      // Ignore focus errors
+    }
+  };
+
   const scrollToSection = (sectionId: string) => {
-    const el = document.getElementById(sectionId);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
+    releaseScrollLock();
+
+    const el = resolveTargetElement(sectionId);
+    if (el && location.pathname === '/') {
+      executeScrollToElement(el);
     } else {
-      navigate('/');
-      setTimeout(() => {
-        const target = document.getElementById(sectionId);
+      navigate('/', { state: { scrollTo: sectionId } });
+      let attempts = 0;
+      const pollTimer = setInterval(() => {
+        attempts++;
+        const target = resolveTargetElement(sectionId);
         if (target) {
-          target.scrollIntoView({ behavior: 'smooth' });
+          clearInterval(pollTimer);
+          executeScrollToElement(target);
+        } else if (attempts > 30) {
+          clearInterval(pollTimer);
         }
-      }, 120);
+      }, 50);
     }
   };
 
   const handleMobileNavScroll = (sectionId: string) => {
-    setMobileMenuOpen(false);
-    // Give mobile offcanvas time to begin slide-out and unlock document scroll
-    setTimeout(() => {
+    releaseScrollLock();
+
+    if (!mobileMenuOpen) {
       scrollToSection(sectionId);
-    }, 120);
+      return;
+    }
+
+    pendingScrollRef.current = sectionId;
+    setMobileMenuOpen(false);
+
+    // Reliable fallback for environments where CSS transitions/onExited are suppressed
+    setTimeout(() => {
+      releaseScrollLock();
+      if (pendingScrollRef.current === sectionId) {
+        pendingScrollRef.current = null;
+        scrollToSection(sectionId);
+      }
+    }, 320);
   };
+
+  const handleDrawerExited = () => {
+    releaseScrollLock();
+    if (pendingScrollRef.current) {
+      const targetId = pendingScrollRef.current;
+      pendingScrollRef.current = null;
+      scrollToSection(targetId);
+    }
+  };
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 1180) {
+        setMobileMenuOpen(false);
+        releaseScrollLock();
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      releaseScrollLock();
+    };
+  }, [setMobileMenuOpen]);
 
   return (
     <header
@@ -68,11 +160,46 @@ export const Navbar: React.FC = () => {
                 📊 Dashboard
               </Link>
             )}
-            <button type="button" className="nav-link-btn" onClick={() => scrollToSection('exam-boards')}>Examinations</button>
-            <button type="button" className="nav-link-btn" onClick={() => scrollToSection('quick-start')}>Quick Start</button>
-            <button type="button" className="nav-link-btn" onClick={() => scrollToSection('how-it-works')}>How It Works</button>
-            <button type="button" className="nav-link-btn" onClick={() => scrollToSection('benefits')}>Benefits</button>
-            <button type="button" className="nav-link-btn" onClick={() => scrollToSection('pricing-preview')}>Pricing</button>
+            <button
+              type="button"
+              id="desktop-nav-examinations"
+              className="nav-link-btn"
+              onClick={() => scrollToSection('exam-boards')}
+            >
+              Examinations
+            </button>
+            <button
+              type="button"
+              id="desktop-nav-quick-start"
+              className="nav-link-btn"
+              onClick={() => scrollToSection('quick-start')}
+            >
+              Quick Start
+            </button>
+            <button
+              type="button"
+              id="desktop-nav-how-it-works"
+              className="nav-link-btn"
+              onClick={() => scrollToSection('how-it-works')}
+            >
+              How It Works
+            </button>
+            <button
+              type="button"
+              id="desktop-nav-benefits"
+              className="nav-link-btn"
+              onClick={() => scrollToSection('benefits')}
+            >
+              Benefits
+            </button>
+            <button
+              type="button"
+              id="desktop-nav-pricing"
+              className="nav-link-btn"
+              onClick={() => scrollToSection('pricing-preview')}
+            >
+              Pricing
+            </button>
             {!isAuthenticated && (
               <button
                 type="button"
@@ -149,7 +276,7 @@ export const Navbar: React.FC = () => {
             aria-label="Toggle navigation menu"
             aria-expanded={mobileMenuOpen}
             aria-controls="public-mobile-drawer"
-            onClick={() => setMobileMenuOpen(true)}
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <rect y="3" width="20" height="2.2" rx="1.1" fill="currentColor" />
@@ -164,7 +291,14 @@ export const Navbar: React.FC = () => {
       <Offcanvas
         id="public-mobile-drawer"
         show={mobileMenuOpen}
-        onHide={() => setMobileMenuOpen(false)}
+        restoreFocus={false}
+        restoreFocusOptions={{ preventScroll: true }}
+        onHide={() => {
+          pendingScrollRef.current = null;
+          setMobileMenuOpen(false);
+          releaseScrollLock();
+        }}
+        onExited={handleDrawerExited}
         placement="end"
         className="mobile-offcanvas"
       >
@@ -213,11 +347,46 @@ export const Navbar: React.FC = () => {
                 🛡️ Admin Portal
               </Link>
             )}
-            <button type="button" className="mobile-nav-link-btn" onClick={() => handleMobileNavScroll('exam-boards')}>Examinations</button>
-            <button type="button" className="mobile-nav-link-btn" onClick={() => handleMobileNavScroll('quick-start')}>Quick Start</button>
-            <button type="button" className="mobile-nav-link-btn" onClick={() => handleMobileNavScroll('how-it-works')}>How It Works</button>
-            <button type="button" className="mobile-nav-link-btn" onClick={() => handleMobileNavScroll('benefits')}>Benefits</button>
-            <button type="button" className="mobile-nav-link-btn" onClick={() => handleMobileNavScroll('pricing-preview')}>Pricing</button>
+            <button
+              type="button"
+              id="mobile-nav-examinations"
+              className="mobile-nav-link-btn"
+              onClick={() => handleMobileNavScroll('exam-boards')}
+            >
+              Examinations
+            </button>
+            <button
+              type="button"
+              id="mobile-nav-quick-start"
+              className="mobile-nav-link-btn"
+              onClick={() => handleMobileNavScroll('quick-start')}
+            >
+              Quick Start
+            </button>
+            <button
+              type="button"
+              id="mobile-nav-how-it-works"
+              className="mobile-nav-link-btn"
+              onClick={() => handleMobileNavScroll('how-it-works')}
+            >
+              How It Works
+            </button>
+            <button
+              type="button"
+              id="mobile-nav-benefits"
+              className="mobile-nav-link-btn"
+              onClick={() => handleMobileNavScroll('benefits')}
+            >
+              Benefits
+            </button>
+            <button
+              type="button"
+              id="mobile-nav-pricing"
+              className="mobile-nav-link-btn"
+              onClick={() => handleMobileNavScroll('pricing-preview')}
+            >
+              Pricing
+            </button>
             {!isAuthenticated && (
               <button
                 type="button"
@@ -260,4 +429,5 @@ export const Navbar: React.FC = () => {
     </header>
   );
 };
+
 

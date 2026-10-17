@@ -8,31 +8,78 @@ export const Footer: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
+  const resolveTargetElement = (sectionId: string): HTMLElement | null => {
+    let el = document.getElementById(sectionId);
+    if (!el) {
+      if (sectionId === 'examinations' || sectionId === 'exam-boards') {
+        el = document.getElementById('exam-boards') || document.getElementById('examinations');
+      } else if (sectionId === 'pricing' || sectionId === 'pricing-preview') {
+        el = document.getElementById('pricing-preview') || document.getElementById('pricing');
+      }
+    }
+    return el;
+  };
+
+  const executeScrollToElement = (target: HTMLElement) => {
+    const navHeader = document.querySelector('header.site-header') as HTMLElement | null;
+    const headerHeight = navHeader ? navHeader.getBoundingClientRect().height : 80;
+    const rect = target.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const targetY = Math.max(0, rect.top + scrollTop - headerHeight - 16);
+
+    try {
+      window.scrollTo({
+        top: targetY,
+        behavior: 'smooth',
+      });
+    } catch {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    try {
+      if (!target.hasAttribute('tabindex')) {
+        target.setAttribute('tabindex', '-1');
+      }
+      target.focus({ preventScroll: true });
+    } catch {
+      // Ignore focus errors
+    }
+  };
+
+  const scrollToSection = (sectionId: string) => {
+    const el = resolveTargetElement(sectionId);
+    if (el && window.location.pathname === '/') {
+      executeScrollToElement(el);
+    } else {
+      navigate('/', { state: { scrollTo: sectionId } });
+      let attempts = 0;
+      const pollTimer = setInterval(() => {
+        attempts++;
+        const target = resolveTargetElement(sectionId);
+        if (target) {
+          clearInterval(pollTimer);
+          executeScrollToElement(target);
+        } else if (attempts > 30) {
+          clearInterval(pollTimer);
+        }
+      }, 50);
+    }
+  };
+
   const handleCreateAccountAction = (dest?: string) => {
     if (isAuthenticated && dest) {
-      if (dest === 'exam-boards' || dest === 'experience' || dest === 'offers' || dest === 'performance') {
-        const el = document.getElementById(dest);
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      if (dest === 'exam-boards' || dest === 'examinations') {
+        scrollToSection('exam-boards');
+      } else if (dest === 'experience') {
+        navigate('/portal/cbt');
+      } else if (dest === 'offers') {
+        navigate('/portal/questions');
+      } else if (dest === 'performance') {
+        navigate('/analytics');
       } else {
         navigate(dest);
       }
     } else {
       openAuthModal('signup');
-    }
-  };
-
-  const scrollToSection = (sectionId: string) => {
-    const el = document.getElementById(sectionId);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      navigate('/');
-      setTimeout(() => {
-        const target = document.getElementById(sectionId);
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 120);
     }
   };
 

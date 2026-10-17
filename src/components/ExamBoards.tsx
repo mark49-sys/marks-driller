@@ -116,6 +116,7 @@ export const ExamBoards: React.FC = () => {
 
   return (
     <section className="boards section" id="exam-boards" aria-label="Official Nigerian Examination Boards and University Courses">
+      <div id="examinations" style={{ position: 'relative', top: '-1px', height: 0, overflow: 'hidden' }} aria-hidden="true" />
       <div className="wrap">
         <div className="section-head" style={{ marginBottom: '28px' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>

@@ -83,6 +83,9 @@ jobs:
       - name: Landing Page Redesign & Narrative Audit
         run: npm run test:landing
 
+      - name: Permanent Mobile and Tablet Navigation Verification
+        run: npm run test:mobile-nav
+
       - name: Production CBT Calculator Verification & CSP Audit
         run: npm run test:calc
 

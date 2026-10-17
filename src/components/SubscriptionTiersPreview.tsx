@@ -31,6 +31,7 @@ export const SubscriptionTiersPreview: React.FC = () => {
 
   return (
     <section className="section" id="pricing-preview" aria-label="Transparent Subscription Plans">
+      <div id="pricing" style={{ position: 'relative', top: '-1px', height: 0, overflow: 'hidden' }} aria-hidden="true" />
       <div className="wrap">
         <div className="section-head" style={{ marginBottom: '28px' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>

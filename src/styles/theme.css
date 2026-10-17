@@ -72,6 +72,7 @@
 
   /* Fluid Container Margins & Safe Areas */
   --page-content-max-width: 1220px;
+  --header-height: 80px;
   --container-max-width: var(--page-content-max-width, 1220px);
   --container-pad-x: clamp(22px, 2.75vw, 36px);
   --page-gutter: var(--container-pad-x);
@@ -187,14 +188,16 @@ section[id],
 div[id].section,
 .section[id],
 #hero,
+#examinations,
 #exam-boards,
 #quick-start,
 #how-it-works,
 #benefits,
+#pricing,
 #pricing-preview,
 #cta,
 #student-success-carousel {
-  scroll-margin-top: calc(var(--header-height, 68px) + 20px);
+  scroll-margin-top: calc(var(--header-height, 80px) + 20px);
 }
 
 img, svg {
@@ -606,6 +609,8 @@ nav.wrap.nav-container,
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 
@@ -1530,7 +1535,8 @@ footer.site-footer {
 .mobile-nav-links a,
 .mobile-nav-links button.mobile-nav-link-btn {
   color: var(--ink);
-  padding: 8px 0;
+  padding: 12px 0;
+  min-height: 48px;
   border: none;
   border-bottom: 1px solid var(--paper-line);
   background: none;
@@ -1542,6 +1548,8 @@ footer.site-footer {
   display: flex;
   align-items: center;
   width: 100%;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .mobile-nav-links a:hover,
@@ -1556,7 +1564,7 @@ footer.site-footer {
   }
 }
 
-@media (max-width: 1080px) {
+@media (max-width: 1180px) {
   .nav-desktop-group {
     display: none !important;
   }
@@ -2966,6 +2974,8 @@ button[aria-label="Open global quick search"] > span:first-child {
   justify-content: center;
   padding: 0;
   flex-shrink: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 
