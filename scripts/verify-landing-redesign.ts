@@ -133,7 +133,8 @@ async function runAudit() {
     'HERO_CLEAR_HEADLINE',
     'Hero headline clearly states what MarkDriller does and exams supported',
     heroContent.includes('Prepare Confidently for JAMB, WAEC, NECO & Post-UTME') ||
-      heroContent.includes('JAMB, WAEC, NECO'),
+      heroContent.includes('JAMB, WAEC, NECO') ||
+      (heroContent.includes('Prepare Confidently for JAMB') && heroContent.includes('WAEC, NECO')),
     'Headline communicates supported examinations and platform purpose clearly'
   );
 

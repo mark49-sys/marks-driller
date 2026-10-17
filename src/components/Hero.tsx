@@ -47,8 +47,16 @@ export const Hero: React.FC = () => {
       {/* Layer 3: High-impact foreground content visible above the fold */}
       <div className="wrap hero-wrap hero__inner">
         <div className="hero-foreground-content">
-          <h1 className="hero-headline">
-            Prepare Confidently for JAMB, WAEC, NECO &amp; Post-UTME.
+          <div className="hero-eyebrow-container">
+            <span className="hero-eyebrow-text">
+              NIGERIA'S FOREMOST CBT EXAM PRACTICE PLATFORM
+            </span>
+          </div>
+
+          <h1 className="hero-headline" style={{ color: '#ffffff' }}>
+            <span className="hero-headline-line" style={{ color: '#ffffff' }}>Prepare Confidently for JAMB,</span>
+            <br className="hero-headline-desktop-break" />
+            <span className="hero-headline-line" style={{ color: '#ffffff' }}>WAEC, NECO &amp; Post-UTME.</span>
           </h1>
 
           <p className="hero-lede">
