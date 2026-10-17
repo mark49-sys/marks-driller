@@ -21,7 +21,7 @@ const EXAM_OPTIONS = [
   'NECO',
   'GCE',
   'POST-UTME',
-  'NABTEB',
+  'University Courses',
 ];
 
 export const AuthModal: React.FC = () => {

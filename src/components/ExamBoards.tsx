@@ -12,6 +12,7 @@ export interface ExamBoardItem {
   badge: string;
   description: string;
   defaultExamCode: string;
+  isUniversityCourses?: boolean;
 }
 
 export const SUPPORTED_EXAM_BOARDS: ExamBoardItem[] = [
@@ -56,12 +57,13 @@ export const SUPPORTED_EXAM_BOARDS: ExamBoardItem[] = [
     defaultExamCode: 'POST-UTME',
   },
   {
-    id: 'nabteb',
-    shortCode: 'NABTEB',
-    officialName: 'National Business & Technical Examinations Board',
-    badge: 'Technical & Trade',
-    description: 'Accredited technical trade, business, and vocational examination curriculum papers.',
-    defaultExamCode: 'NABTEB',
+    id: 'university-courses',
+    shortCode: 'University Courses',
+    officialName: 'Undergraduate Degree Programmes & Course Syllabi',
+    badge: 'Degree Programmes',
+    description: 'Accredited university undergraduate degree course curricula, faculty cut-offs, and departmental prerequisites.',
+    defaultExamCode: 'UNIVERSITY-COURSES',
+    isUniversityCourses: true,
   },
 ];
 
@@ -77,7 +79,20 @@ export const ExamBoards: React.FC = () => {
       ? SUPPORTED_EXAM_BOARDS
       : SUPPORTED_EXAM_BOARDS.filter((c) => c.shortCode === filterMode || c.id === filterMode);
 
+  const handleUniversityCourses = () => {
+    setSelectedExamBoard('University Courses');
+    if (!isAuthenticated) {
+      openAuthModal('signup');
+    } else {
+      navigate('/portal/schools');
+    }
+  };
+
   const handleStartCbt = (examCode: string) => {
+    if (examCode === 'UNIVERSITY-COURSES' || examCode === 'University Courses') {
+      handleUniversityCourses();
+      return;
+    }
     setSelectedExamBoard(examCode);
     if (!isAuthenticated) {
       openAuthModal('signup');
@@ -87,6 +102,10 @@ export const ExamBoards: React.FC = () => {
   };
 
   const handlePastQuestions = (examCode: string) => {
+    if (examCode === 'UNIVERSITY-COURSES' || examCode === 'University Courses') {
+      handleUniversityCourses();
+      return;
+    }
     setSelectedExamBoard(examCode);
     if (!isAuthenticated) {
       openAuthModal('signup');
@@ -96,7 +115,7 @@ export const ExamBoards: React.FC = () => {
   };
 
   return (
-    <section className="boards section" id="exam-boards" aria-label="Official Nigerian Examination Boards">
+    <section className="boards section" id="exam-boards" aria-label="Official Nigerian Examination Boards and University Courses">
       <div className="wrap">
         <div className="section-head" style={{ marginBottom: '28px' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
@@ -112,12 +131,12 @@ export const ExamBoards: React.FC = () => {
                 fontWeight: 600,
               }}
             >
-              6 Accredited Exam Suites
+              6 Curricular Pathways
             </span>
           </div>
           <h2>Select Your Target Examination</h2>
           <p style={{ maxWidth: '640px', margin: '0 auto', color: 'var(--ink-soft)', fontSize: '15px' }}>
-            Choose your examination board to practice solved past questions, take timed CBT mocks, and prepare with curriculum-verified tests.
+            Choose your examination board or university degree pathway to practice solved past questions, take timed CBT mocks, and prepare with curriculum-verified tests.
           </p>
         </div>
 
@@ -137,7 +156,7 @@ export const ExamBoards: React.FC = () => {
             className={`btn-custom ${filterMode === 'ALL' ? 'btn-custom-primary' : 'btn-custom-ghost'}`}
             style={{ fontSize: '12.5px', padding: '6px 14px' }}
           >
-            All 6 Examinations
+            All Curricula &amp; Courses
           </button>
           {SUPPORTED_EXAM_BOARDS.map((board) => (
             <button
@@ -158,7 +177,9 @@ export const ExamBoards: React.FC = () => {
             const dbBoard = boardsData?.find(
               (b) => b.shortCode === card.defaultExamCode || b.shortCode === card.shortCode
             );
-            const questionCountStr = dbBoard
+            const questionCountStr = card.isUniversityCourses
+              ? 'Accredited Degree Syllabi'
+              : dbBoard
               ? `${dbBoard.questionCount.toLocaleString()} Questions`
               : 'Curriculum-Verified';
 
@@ -256,36 +277,69 @@ export const ExamBoards: React.FC = () => {
                   </div>
 
                   {/* Direct Actions */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <button
-                      type="button"
-                      onClick={() => handleStartCbt(card.defaultExamCode)}
-                      className="btn-custom btn-custom-primary"
-                      style={{
-                        fontSize: '12px',
-                        padding: '8px 10px',
-                        justifyContent: 'center',
-                        fontWeight: 700,
-                      }}
-                      title={`Simulate ${card.shortCode} CBT exam`}
-                    >
-                      ⏱️ CBT Practice
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handlePastQuestions(card.defaultExamCode)}
-                      className="btn-custom btn-custom-ghost"
-                      style={{
-                        fontSize: '12px',
-                        padding: '8px 10px',
-                        justifyContent: 'center',
-                        fontWeight: 600,
-                      }}
-                      title={`Browse ${card.shortCode} past questions`}
-                    >
-                      📖 Past Questions
-                    </button>
-                  </div>
+                  {card.isUniversityCourses ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={handleUniversityCourses}
+                        className="btn-custom btn-custom-primary"
+                        style={{
+                          fontSize: '12px',
+                          padding: '8px 10px',
+                          justifyContent: 'center',
+                          fontWeight: 700,
+                        }}
+                        title="Browse accredited University Courses and cut-off benchmarks"
+                      >
+                        🏛️ Degree Courses
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleUniversityCourses}
+                        className="btn-custom btn-custom-ghost"
+                        style={{
+                          fontSize: '12px',
+                          padding: '8px 10px',
+                          justifyContent: 'center',
+                          fontWeight: 600,
+                        }}
+                        title="Explore university admission prerequisites and courses"
+                      >
+                        📖 Course Finder
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleStartCbt(card.defaultExamCode)}
+                        className="btn-custom btn-custom-primary"
+                        style={{
+                          fontSize: '12px',
+                          padding: '8px 10px',
+                          justifyContent: 'center',
+                          fontWeight: 700,
+                        }}
+                        title={`Simulate ${card.shortCode} CBT exam`}
+                      >
+                        ⏱️ CBT Practice
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handlePastQuestions(card.defaultExamCode)}
+                        className="btn-custom btn-custom-ghost"
+                        style={{
+                          fontSize: '12px',
+                          padding: '8px 10px',
+                          justifyContent: 'center',
+                          fontWeight: 600,
+                        }}
+                        title={`Browse ${card.shortCode} past questions`}
+                      >
+                        📖 Past Questions
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -307,7 +361,7 @@ export const ExamBoards: React.FC = () => {
           }}
         >
           <strong style={{ color: 'var(--ink)' }}>Statutory Notice &amp; Independent Attribution:</strong>{' '}
-          MarkDriller is an independent Nigerian educational examination-preparation platform. Registered examination acronyms and official names (JAMB, WAEC, NECO, NABTEB) are property of their respective statutory examination bodies, referenced solely for syllabus identification and candidate preparation under fair dealing principles.
+          MarkDriller is an independent Nigerian educational examination-preparation platform. Registered examination acronyms and official names (JAMB, WAEC, NECO) are property of their respective statutory examination bodies, referenced solely for syllabus identification and candidate preparation under fair dealing principles.
         </div>
       </div>
     </section>

@@ -47,7 +47,8 @@
     "test:pricing": "tsx scripts/verify-admin-pricing-and-payments.ts",
     "test:pwa-notif": "tsx scripts/verify-pwa-and-responsive-notifications.ts",
     "test:calc": "tsx scripts/verify-cbt-calculator.ts",
-    "test:hero-scroll": "tsx scripts/verify-hero-reduction-and-scroll.ts"
+    "test:hero-scroll": "tsx scripts/verify-hero-reduction-and-scroll.ts",
+    "test:courses": "tsx scripts/verify-auto-slide-scroll-and-university-courses.ts"
   },
   "keywords": [
     "mark-driller",

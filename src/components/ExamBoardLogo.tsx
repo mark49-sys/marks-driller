@@ -31,6 +31,9 @@ export const ExamBoardLogo: React.FC<ExamBoardLogoProps> = ({
   } else if (norm.includes('NECO')) {
     logoSrc = '/assets/logos/neco.png';
     label = 'NECO';
+  } else if (norm.includes('UNIVERSITY') || norm.includes('COURSE') || norm.includes('UNILAG')) {
+    logoSrc = '/assets/logos/university-courses.png';
+    label = 'University Courses';
   } else if (norm.includes('NABTEB')) {
     logoSrc = '/assets/logos/nabteb.png';
     label = 'NABTEB';

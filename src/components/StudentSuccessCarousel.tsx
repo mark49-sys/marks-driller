@@ -62,6 +62,8 @@ export const ACHIEVER_IMAGES: AchieverImage[] = [
 
 export const StudentSuccessCarousel: React.FC = () => {
   const trackRef = useRef<HTMLDivElement>(null);
+  const triggerBtnRef = useRef<HTMLButtonElement>(null);
+  const toggleBtnRef = useRef<HTMLButtonElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isAutoPlay, setIsAutoPlay] = useState(true);
   const [isAutoSlideBtnVisible, setIsAutoSlideBtnVisible] = useState(false);
@@ -85,12 +87,14 @@ export const StudentSuccessCarousel: React.FC = () => {
     }
   }, []);
 
-  // Allow keyboard Escape to close revealed auto-slide button
+  // Allow keyboard Escape to close revealed auto-slide button without scrolling page
   useEffect(() => {
     if (!isAutoSlideBtnVisible) return;
     const handleKeyDownEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        e.preventDefault();
         setIsAutoSlideBtnVisible(false);
+        triggerBtnRef.current?.focus({ preventScroll: true });
       }
     };
     window.addEventListener('keydown', handleKeyDownEsc);
@@ -130,16 +134,17 @@ export const StudentSuccessCarousel: React.FC = () => {
     return () => track.removeEventListener('scroll', updateScrollState);
   }, [updateScrollState]);
 
-  // Programmatic scroll to specific slide index
+  // Programmatic scroll to specific slide index strictly within the carousel track (never scrolls window)
   const scrollToSlide = useCallback((index: number) => {
-    if (!trackRef.current) return;
-    const children = Array.from(trackRef.current.children) as HTMLElement[];
+    const track = trackRef.current;
+    if (!track) return;
+    const children = Array.from(track.children) as HTMLElement[];
     const target = children[index];
     if (target) {
-      target.scrollIntoView({
+      const scrollPos = target.offsetLeft - track.offsetLeft;
+      track.scrollTo({
+        left: scrollPos >= 0 ? scrollPos : target.offsetLeft,
         behavior: prefersReducedMotion ? 'auto' : 'smooth',
-        block: 'nearest',
-        inline: 'start',
       });
       setActiveIndex(index);
     }
@@ -165,8 +170,10 @@ export const StudentSuccessCarousel: React.FC = () => {
   // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowLeft') {
+      e.preventDefault();
       handlePrev();
     } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
       handleNext();
     }
   };
@@ -219,6 +226,28 @@ export const StudentSuccessCarousel: React.FC = () => {
     return () => clearInterval(timer);
   }, [isAutoPlay, isHovered, prefersReducedMotion, handleNext]);
 
+  const handleRevealAutoSlide = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsAutoSlideBtnVisible(true);
+    requestAnimationFrame(() => {
+      toggleBtnRef.current?.focus({ preventScroll: true });
+    });
+  };
+
+  const handleToggleAutoSlide = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget) {
+      (e.currentTarget as HTMLElement).blur();
+    }
+    setIsAutoPlay((prev) => !prev);
+    setIsAutoSlideBtnVisible(false);
+    setTimeout(() => {
+      triggerBtnRef.current?.focus({ preventScroll: true });
+    }, 0);
+  };
+
   return (
     <section
       className="achiever-images-section"
@@ -235,47 +264,45 @@ export const StudentSuccessCarousel: React.FC = () => {
           </h2>
 
           <div className="achiever-carousel-actions" role="region" aria-label="Slideshow controls">
-            {/* Automatic Slideshow Toggle: hidden by default; revealed by clicking designated trigger; hides after action */}
-            {!isAutoSlideBtnVisible ? (
-              <button
-                type="button"
-                className="achiever-autoplay-trigger"
-                onClick={() => setIsAutoSlideBtnVisible(true)}
-                aria-label="Reveal auto-slide control"
-                title="Click to reveal auto-slide control"
+            {/* Automatic Slideshow Toggle: preserved in DOM without unmounting focus loss, controlled with preventScroll */}
+            <button
+              ref={triggerBtnRef}
+              type="button"
+              className="achiever-autoplay-trigger"
+              style={{ display: !isAutoSlideBtnVisible ? 'inline-flex' : 'none' }}
+              onClick={handleRevealAutoSlide}
+              aria-label="Reveal auto-slide control"
+              title="Click to reveal auto-slide control"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
               >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" />
-                </svg>
-                <span className="autoplay-trigger-label">Auto-Slide</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                className={`achiever-autoplay-btn ${isAutoPlay ? 'active' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsAutoPlay((prev) => !prev);
-                  setIsAutoSlideBtnVisible(false);
-                }}
-                aria-label={isAutoPlay ? 'Turn automatic slides off' : 'Turn automatic slides on'}
-                title={isAutoPlay ? 'Auto-Slide: ON (Click to turn off)' : 'Auto-Slide: OFF (Click to turn on)'}
-              >
-                <span className={`autoplay-indicator ${isAutoPlay ? 'on' : 'off'}`} aria-hidden="true" />
-                <span className="autoplay-label">{isAutoPlay ? 'Auto-Slide: ON' : 'Auto-Slide: OFF'}</span>
-              </button>
-            )}
+                <circle cx="12" cy="12" r="10" />
+                <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" />
+              </svg>
+              <span className="autoplay-trigger-label">Auto-Slide</span>
+            </button>
+
+            <button
+              ref={toggleBtnRef}
+              type="button"
+              className={`achiever-autoplay-btn ${isAutoPlay ? 'active' : ''}`}
+              style={{ display: isAutoSlideBtnVisible ? 'inline-flex' : 'none' }}
+              onClick={handleToggleAutoSlide}
+              aria-label={isAutoPlay ? 'Turn automatic slides off' : 'Turn automatic slides on'}
+              title={isAutoPlay ? 'Auto-Slide: ON (Click to turn off)' : 'Auto-Slide: OFF (Click to turn on)'}
+            >
+              <span className={`autoplay-indicator ${isAutoPlay ? 'on' : 'off'}`} aria-hidden="true" />
+              <span className="autoplay-label">{isAutoPlay ? 'Auto-Slide: ON' : 'Auto-Slide: OFF'}</span>
+            </button>
 
             {/* Prev / Next Controls */}
             <div className="achiever-nav-group">
@@ -283,6 +310,7 @@ export const StudentSuccessCarousel: React.FC = () => {
                 type="button"
                 className="achiever-nav-arrow prev"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   handlePrev();
                 }}
@@ -298,6 +326,7 @@ export const StudentSuccessCarousel: React.FC = () => {
                 type="button"
                 className="achiever-nav-arrow next"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   handleNext();
                 }}
@@ -354,7 +383,11 @@ export const StudentSuccessCarousel: React.FC = () => {
               aria-selected={idx === activeIndex}
               aria-label={`Go to slide ${idx + 1}`}
               className={`achiever-dot ${idx === activeIndex ? 'is-active' : ''}`}
-              onClick={() => scrollToSlide(idx)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                scrollToSlide(idx);
+              }}
             />
           ))}
         </div>

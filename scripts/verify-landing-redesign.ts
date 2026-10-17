@@ -265,13 +265,14 @@ async function runAudit() {
     'Enforces strictly 3 cards per row on desktop with responsive mobile wrapping'
   );
 
-  const supportedExams = ['JAMB', 'WAEC', 'NECO', 'GCE', 'POST-UTME', 'NABTEB'];
+  const supportedExams = ['JAMB', 'WAEC', 'NECO', 'GCE', 'POST-UTME', 'University Courses'];
   const hasAllExams = supportedExams.every(ex => examBoardsContent.includes(ex));
+  const hasNoNabteb = !examBoardsContent.includes("shortCode: 'NABTEB'");
   assertCheck(
     'BOARDS_SUPPORTED_EXAMS',
-    'All 6 statutory examination suites supported',
-    hasAllExams,
-    'Displays JAMB / UTME, WAEC, NECO, GCE, POST-UTME, and NABTEB'
+    'All statutory examination suites and University Courses supported without NABTEB',
+    hasAllExams && hasNoNabteb,
+    'Displays JAMB / UTME, WAEC, NECO, GCE, POST-UTME, and University Courses (NABTEB replaced)'
   );
 
   assertCheck(
