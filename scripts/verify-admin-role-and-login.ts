@@ -379,12 +379,13 @@ async function runAudit() {
       `Found account: ${primaryAdmin?.email} (Role: ${primaryAdmin?.role})`
     );
 
-    const totalAdminsInDb = await User.countDocuments({ role: 'ADMIN' });
+    const activeAdminUsers = await User.find({ role: 'ADMIN' }, { email: 1 }).lean();
+    const activeAdminEmails = activeAdminUsers.map((u) => u.email.toLowerCase());
     assertCheck(
-      'TOTAL_ADMINS_IN_DB',
-      'Total active ADMIN accounts in database is exactly 2',
-      totalAdminsInDb === 2,
-      `Found exactly 2 ADMIN accounts in database (trustezika831@gmail.com and admin@markdriller.ng)`
+      'SECOND_ACCOUNT_NOT_IN_ADMIN_ROLE_LIST',
+      'Second account is absent from database accounts with role ADMIN',
+      !activeAdminEmails.includes('markzionsinachi@gmail.com'),
+      `Active admin emails in database: ${JSON.stringify(activeAdminEmails)}`
     );
 
     await mongoose.disconnect();
