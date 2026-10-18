@@ -210,6 +210,22 @@ router.post(
         await user.save();
       }
 
+      // If user was previously an admin but is no longer in authorized admin list, enforce STUDENT role
+      if (!isAuthorizedAdminEmail(user.email) && user.role === 'ADMIN') {
+        user.role = 'STUDENT';
+        await user.save();
+      }
+
+      // Intended platform administrator is exempt from OTP prompts and verification blocks
+      const isDesignatedAdmin = user.email.toLowerCase() === (env.ADMIN_EMAIL || 'admin@markdriller.ng').toLowerCase();
+      if (isDesignatedAdmin && !user.isVerified) {
+        user.isVerified = true;
+        user.verificationOtp = undefined;
+        user.verificationOtpExpires = undefined;
+        user.verificationOtpAttempts = 0;
+        await user.save();
+      }
+
       const token = generateToken({
         userId: user._id.toString(),
         email: user.email,
@@ -222,7 +238,7 @@ router.post(
         data: {
           token,
           user: user.toJSON(),
-          needsVerification: !user.isVerified,
+          needsVerification: isDesignatedAdmin ? false : !user.isVerified,
         },
       });
     } catch (error) {
@@ -689,6 +705,9 @@ router.get(
       if (user && isAuthorizedAdminEmail(user.email) && user.role !== 'ADMIN') {
         user.role = 'ADMIN';
         user.isVerified = true;
+        await user.save();
+      } else if (user && !isAuthorizedAdminEmail(user.email) && user.role === 'ADMIN') {
+        user.role = 'STUDENT';
         await user.save();
       }
 

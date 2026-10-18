@@ -49,7 +49,8 @@
     "test:calc": "tsx scripts/verify-cbt-calculator.ts",
     "test:hero-scroll": "tsx scripts/verify-hero-reduction-and-scroll.ts",
     "test:courses": "tsx scripts/verify-auto-slide-scroll-and-university-courses.ts",
-    "test:mobile-nav": "tsx scripts/verify-mobile-navigation-scroll.ts"
+    "test:mobile-nav": "tsx scripts/verify-mobile-navigation-scroll.ts",
+    "test:admin-role": "tsx scripts/verify-admin-role-and-login.ts"
   },
   "keywords": [
     "mark-driller",

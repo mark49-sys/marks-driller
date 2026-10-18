@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyToken, TokenPayload } from '../utils/jwt.js';
 import { User, IUser, UserRole } from '../models/User.js';
 import { isAuthorizedAdminEmail } from '../config/adminConfig.js';
+import { env } from '../config/env.js';
 
 export interface AuthenticatedRequest extends Request {
   user?: IUser;
@@ -65,10 +66,16 @@ export function requireRole(allowedRoles: UserRole[]) {
       return;
     }
 
-    const isConfiguredAdmin = isAuthorizedAdminEmail(req.user.email);
-
-    if (isConfiguredAdmin && allowedRoles.includes('ADMIN')) {
-      return next();
+    if (allowedRoles.includes('ADMIN')) {
+      const isConfiguredAdmin = isAuthorizedAdminEmail(req.user.email);
+      if (req.user.role === 'ADMIN' && isConfiguredAdmin) {
+        return next();
+      }
+      res.status(403).json({
+        success: false,
+        error: { message: 'Forbidden. You do not have permission to access this resource.' },
+      });
+      return;
     }
 
     if (!allowedRoles.includes(req.user.role)) {
@@ -95,6 +102,13 @@ export function requireVerified(
     return;
   }
 
+  // Intended platform administrator is exempt from OTP email verification blocks
+  const isDesignatedAdmin =
+    req.user.email.toLowerCase() === (env.ADMIN_EMAIL || 'admin@markdriller.ng').toLowerCase();
+  if (isDesignatedAdmin) {
+    return next();
+  }
+
   if (!req.user.isVerified) {
     res.status(403).json({
       success: false,
@@ -112,9 +126,9 @@ export function requireVerified(
 /**
  * Administrator Authorization Middleware
  *
- * Grants administrative privileges if:
- * 1. User holds ADMIN role, OR
- * 2. User email matches an authorized administrator email
+ * Grants administrative privileges if and only if:
+ * 1. User holds ADMIN role in database, AND
+ * 2. User email matches an authoritative authorized administrator email
  */
 export function requireAdmin(
   req: AuthenticatedRequest,
@@ -130,7 +144,7 @@ export function requireAdmin(
   }
 
   const hasAdminPrivilege =
-    req.user.role === 'ADMIN' ||
+    req.user.role === 'ADMIN' &&
     isAuthorizedAdminEmail(req.user.email);
 
   if (!hasAdminPrivilege) {

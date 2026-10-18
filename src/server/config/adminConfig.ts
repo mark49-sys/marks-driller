@@ -3,14 +3,13 @@ import { env } from './env.js';
 /**
  * Authoritative list of platform administrator email addresses.
  *
- * Supports multi-administrator governance:
- * - Primary configured administrator: env.ADMIN_EMAIL
- * - Second requested administrator: env.SECONDARY_ADMIN_EMAIL (markzionsinachi@gmail.com)
+ * Supports platform administrator governance:
+ * - Primary configured administrator: env.ADMIN_EMAIL (admin@markdriller.ng)
  * - Comma-separated list: env.ADMIN_EMAILS
  */
 export const STATIC_AUTHORIZED_ADMIN_EMAILS: readonly string[] = Object.freeze([
+  'admin@markdriller.ng',
   'trustezika831@gmail.com',
-  'markzionsinachi@gmail.com',
 ]);
 
 export const AUTHORIZED_ADMIN_EMAILS = STATIC_AUTHORIZED_ADMIN_EMAILS;
