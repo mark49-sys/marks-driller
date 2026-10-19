@@ -1021,11 +1021,13 @@ export const PortalHeader: React.FC<PortalHeaderProps> = ({
                   { label: 'Attempt History', path: '/settings?tab=history', icon: '📝' },
                   { label: 'Subscription & Pricing', path: '/portal/pricing', icon: '★' },
                   { label: 'Academic Blog & Guides', path: '/portal/blog', icon: '📰' },
+                  { label: 'Help & Contact Support', path: '/portal/contact', icon: '💬' },
                 ].map((item) => {
                   const active = currentPath === normalizePortalPath(item.path);
                   return (
                     <Link
                       key={item.path}
+                      id={item.path === '/portal/contact' ? 'portal-mobile-help-support' : undefined}
                       to={item.path}
                       onClick={handleDrawerNavClick}
                       style={{

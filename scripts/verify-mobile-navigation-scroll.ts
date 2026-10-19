@@ -164,6 +164,14 @@ for (const link of expectedMobileNavLinks) {
   );
 }
 
+assertCheck(
+  'MOBILE_LINK_HELP_SUPPORT',
+  'Mobile link for Help & Contact Support exists in mobile drawer',
+  navbarContent.includes('id="mobile-nav-help-support"') &&
+    navbarContent.includes('handleHelpSupportClick'),
+  'Button id="mobile-nav-help-support" invokes handleHelpSupportClick'
+);
+
 // -----------------------------------------------------------------------------
 // 4. Offcanvas Focus-Trap Elimination (Root Cause Fix)
 // -----------------------------------------------------------------------------
@@ -273,6 +281,14 @@ assertCheck(
   'PortalHeader links invoke handleDrawerNavClick releasing scroll lock',
   portalHeaderContent.includes('handleDrawerNavClick'),
   'Drawer links close drawer and release scroll lock immediately upon tap'
+);
+
+assertCheck(
+  'PORTAL_MOBILE_LINK_HELP_SUPPORT',
+  'PortalHeader mobile drawer contains Help & Contact Support item',
+  portalHeaderContent.includes('portal-mobile-help-support') &&
+    portalHeaderContent.includes("path: '/portal/contact'"),
+  'Item id="portal-mobile-help-support" points to /portal/contact'
 );
 
 // -----------------------------------------------------------------------------
@@ -464,6 +480,14 @@ for (const link of expectedDesktopLinks) {
     `Desktop link id="${link.id}" invokes scrollToSection('${link.target}')`
   );
 }
+
+assertCheck(
+  'DESKTOP_LINK_HELP_SUPPORT',
+  'Desktop link for Help & Support exists in navigation bar',
+  navbarContent.includes('id="desktop-nav-help-support"') &&
+    navbarContent.includes('handleHelpSupportClick'),
+  'Desktop link id="desktop-nav-help-support" invokes handleHelpSupportClick'
+);
 
 // -----------------------------------------------------------------------------
 // 13. Simulated Device Viewport Matrix Audit

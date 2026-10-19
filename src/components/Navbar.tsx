@@ -1,17 +1,49 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import Offcanvas from 'react-bootstrap/Offcanvas';
+import Modal from 'react-bootstrap/Modal';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore.js';
 import { useAuthStore } from '../store/useAuthStore.js';
 import { BrandLogo } from './BrandLogo.js';
 import { ThemeToggle } from './ThemeToggle.js';
 import { PwaInstallButton } from './PwaInstallButton.js';
+import {
+  useSupportContactQuery,
+  buildWhatsAppWebLink,
+  buildTelLink,
+  buildMailtoLink,
+  isWhatsAppNumberValid,
+} from '../api/supportContact.js';
 
 export const Navbar: React.FC = () => {
   const { mobileMenuOpen, setMobileMenuOpen, openAuthModal } = useAppStore();
   const { user, isAuthenticated, clearSession } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const { data: support } = useSupportContactQuery();
+
+  const isWhatsAppEnabled = support ? support.whatsappEnabled !== false : true;
+  const whatsappNum = support?.whatsappNumber || '';
+  const whatsappDisplay = support?.whatsappDisplay || '+234 803 000 1234';
+  const phoneDisplay = support?.phoneDisplay || support?.phone || '+234 803 000 1234';
+  const emailDisplay = support?.emailDisplay || support?.email || 'support@markdriller.com';
+  const isPhoneEnabled = support ? support.phoneEnabled !== false : true;
+  const isEmailEnabled = support ? support.emailEnabled !== false : true;
+  const workingHours = support?.workingHours || 'Monday – Saturday, 8:00 AM to 8:00 PM WAT';
+
+  const isWhatsAppLive = isWhatsAppEnabled && isWhatsAppNumberValid(whatsappNum);
+  const whatsappUrl = buildWhatsAppWebLink(whatsappNum, 'Hello MarkDriller Support, I need assistance with CBT practice / platform inquiry.');
+
+  const handleHelpSupportClick = () => {
+    handleNavClick();
+    if (isAuthenticated) {
+      navigate('/portal/contact');
+    } else {
+      setHelpModalOpen(true);
+    }
+  };
 
   const pendingScrollRef = useRef<string | null>(null);
 
@@ -200,6 +232,14 @@ export const Navbar: React.FC = () => {
             >
               Pricing
             </button>
+            <button
+              type="button"
+              id="desktop-nav-help-support"
+              className="nav-link-btn"
+              onClick={handleHelpSupportClick}
+            >
+              Help &amp; Support
+            </button>
             {!isAuthenticated && (
               <button
                 type="button"
@@ -387,6 +427,14 @@ export const Navbar: React.FC = () => {
             >
               Pricing
             </button>
+            <button
+              type="button"
+              id="mobile-nav-help-support"
+              className="mobile-nav-link-btn"
+              onClick={handleHelpSupportClick}
+            >
+              Help &amp; Contact Support
+            </button>
             {!isAuthenticated && (
               <button
                 type="button"
@@ -426,6 +474,116 @@ export const Navbar: React.FC = () => {
           </div>
         </Offcanvas.Body>
       </Offcanvas>
+
+      {/* Help & Contact Support Quick Modal */}
+      <Modal
+        show={helpModalOpen}
+        onHide={() => setHelpModalOpen(false)}
+        centered
+        className="auth-modal-dialog"
+      >
+        <Modal.Header closeButton style={{ borderBottom: '1px solid var(--paper-line)', padding: '18px 24px' }}>
+          <Modal.Title style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', fontWeight: 700, color: 'var(--ink)' }}>
+            <span>💬</span>
+            <span>Help &amp; Contact Support</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '24px' }}>
+          <p style={{ color: 'var(--ink-soft)', fontSize: '14px', lineHeight: 1.5, marginBottom: '20px' }}>
+            Our academic help desk and customer care specialists are on standby to assist you with CBT practice, activation, payment queries, and curriculum questions.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+            {/* WhatsApp Direct */}
+            {isWhatsAppLive && (
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-custom"
+                style={{
+                  backgroundColor: '#22c55e',
+                  color: '#ffffff',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  padding: '12px 16px',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  textDecoration: 'none',
+                }}
+              >
+                <span>💬</span>
+                <span>Chat on WhatsApp ({whatsappDisplay})</span>
+              </a>
+            )}
+
+            {/* Helpline Phone */}
+            {isPhoneEnabled && phoneDisplay && (
+              <a
+                href={buildTelLink(phoneDisplay)}
+                className="btn-custom btn-custom-ghost"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  padding: '12px 16px',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  textDecoration: 'none',
+                }}
+              >
+                <span>📞</span>
+                <span>Call Helpline ({phoneDisplay})</span>
+              </a>
+            )}
+
+            {/* Email Support */}
+            {isEmailEnabled && emailDisplay && (
+              <a
+                href={buildMailtoLink(emailDisplay, 'MarkDriller Student Support Inquiry')}
+                className="btn-custom btn-custom-ghost"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  padding: '12px 16px',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  textDecoration: 'none',
+                }}
+              >
+                <span>✉️</span>
+                <span>Email Support ({emailDisplay})</span>
+              </a>
+            )}
+          </div>
+
+          <div style={{ borderTop: '1px solid var(--paper-line)', paddingTop: '16px', textAlign: 'center' }}>
+            <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginBottom: '12px' }}>
+              🕒 {workingHours}
+            </div>
+            <button
+              type="button"
+              className="btn-custom btn-custom-primary"
+              style={{ width: '100%', justifyContent: 'center', fontSize: '13.5px' }}
+              onClick={() => {
+                setHelpModalOpen(false);
+                openAuthModal('login');
+              }}
+            >
+              Sign In to Submit Formal Ticket ➔
+            </button>
+          </div>
+        </Modal.Body>
+      </Modal>
     </header>
   );
 };
