@@ -1,6 +1,6 @@
 {
   "name": "mark-driller",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Full-stack exam preparation platform for West African secondary and university students (WAEC, NECO, JAMB/UTME), built with React, TypeScript, MUI, Bootstrap, Zustand, TanStack Query, and Express.",
   "private": true,
   "type": "module",
